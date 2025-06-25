@@ -1,11 +1,10 @@
-from dash import dcc, html
-from .styles import BACKGROUND_COLOR, TEXT_COLOR, FONT_FAMILY, VIZ_COLOR
-# you might need the df to generate dropdown options
-from .data_loader import load_data
+from dash import html, dcc
+from ..styles import BACKGROUND_COLOR, TEXT_COLOR, FONT_FAMILY, VIZ_COLOR
+from ..data_loader import load_data
 
 df = load_data()
 
-layout = html.Div(
+dashboard = html.Div(
     style={
         'font-family': FONT_FAMILY,
         'backgroundColor': BACKGROUND_COLOR,
