@@ -1,0 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');
+
+:root {
+    --background-color: #1e1e1e;
+    --text-color: #e0e0e0;
+    --viz-color: #303030;
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: var(--background-color);
+}
+
+.rc-slider-mark-text {
+    color: var(--text-color);
+    font-size: 9px;
+}
+
+#category-dropdown .Select-control {
+  background-color: var(--viz-color) !important;
+  border: 1px solid var(--text-color) !important;
+  color: var(--text-color) !important;
+}
+
+#category-dropdown .Select-value-label, #category-dropdown .Select-placeholder {
+  color: var(--text-color) !important;
+}
+
+#category-dropdown .Select-arrow, #category-dropdown .Select-arrow-zone {
+    color: var(--text-color) !important;
+}
+
+#category-dropdown .Select-menu-outer {
+    background-color: var(--background-color) !important;
+    color: var(--text-color) !important;
+    border: 1px solid var(--text-color) !important;
+    margin-top: 2px;
+}
+
+#category-dropdown .Select-option {
+    color: var(--text-color) !important;
+    padding: 10px 12px;        /* bump up the clickable area */
+    margin-bottom: 4px;        /* space between items */
+    border-radius: 4px;
+}
+
+#category-dropdown .Select-option.is-focused {
+    background-color: var(--viz-color) !important;
+}
+
+#category-dropdown .Select-option.is-selected {
+    background-color: var(--text-color) !important;
+    color: var(--background-color) !important;
+}
+
+#category-dropdown .Select-input > input {
+    color: var(--text-color) !important;
+}
