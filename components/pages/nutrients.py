@@ -3,7 +3,6 @@ from ..styles import BACKGROUND_COLOR, TEXT_COLOR, FONT_FAMILY, VIZ_COLOR
 from ..helpers.data_loader import load_data
 from ..sidebar import get_sidebar
 from ..header import get_header
-from ..controls import get_controls
 
 # FOR NANH AND NGAN,
 # IF YOU WANT TO BUILD ANOTHER PAGE, JUST USE THE `overview.py` FILE FOR REFERNCE

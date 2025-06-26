@@ -3,7 +3,6 @@ from .styles import BACKGROUND_COLOR, TEXT_COLOR, FONT_FAMILY, VIZ_COLOR
 from .helpers.data_loader import load_data
 from .sidebar import get_sidebar
 from .header import get_header
-from .controls import get_controls
 
 df = load_data()
 
@@ -38,9 +37,6 @@ layout = html.Div([
 
             html.Div(
                 id='page-content',
-                # children=[
-                #     get_controls(df),
-                # ],
                 style={
                     'flex': 1,
                     'height': '100vh',
