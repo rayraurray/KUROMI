@@ -1,12 +1,38 @@
 from dash import Input, Output
 import plotly.express as px
-from .data_loader import load_data
-from .filters import apply_filters, remove_aggregates, style_title
+from dash import html, dcc
+
+from .helpers.data_loader import load_data
+from .helpers.filters import apply_filters, remove_aggregates, style_title
 from .styles import CHART_TITLE_CONFIG, VIZ_COLOR, TEXT_COLOR, FONT_FAMILY
+from .pages.overview import overview as page1_layout
+from .pages.nutrients import nutrients as page2_layout
+from .pages.manure import manure as page3_layout
+from .pages.erosion import erosion as page4_layout
+from .pages.water import water as page5_layout
 
 df = load_data()
 
 def register_callbacks(app):
+    @app.callback(
+        Output("page-content", "children"),
+        Input("url", "pathname")
+    )
+    def display_page(pathname):
+        # map URL paths to the layouts you imported
+        page_map = {
+            "/": page1_layout,
+            "/n": page2_layout,
+            "/m": page3_layout,
+            "/e": page4_layout,
+            "/w": page5_layout,
+        }
+        # return 404-ish div if not found
+        return page_map.get(pathname, html.Div([
+            html.H1("404: Not found"),
+            html.P(f"No page for `{pathname}`")
+        ]))
+
     @app.callback(
         Output('total-indicators-display', 'children'),
         [ Input('category-dropdown', 'value'), Input('year-slider', 'value') ]
