@@ -3,12 +3,25 @@ from ..styles import BACKGROUND_COLOR, TEXT_COLOR, FONT_FAMILY, VIZ_COLOR
 from ..helpers.data_loader import load_data
 from ..sidebar import get_sidebar
 from ..header import get_header
-from ..controls import get_overview_controls
+from ..filters import get_category_filter, get_year_filter
 
 df = load_data()
 
 overview = [
-    get_overview_controls(df),
+    html.Div(
+        style={
+            'display': 'flex',
+            'justifyContent': 'space-between',
+            'margin': '0px 100px 30px 100px',
+            'flexDirection': 'column',
+        },
+
+        children=[
+            get_category_filter(df),
+            get_year_filter(df)
+        ]
+    ),
+
     html.Div(
         style={
             'display': 'grid',

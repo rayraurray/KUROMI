@@ -3,7 +3,7 @@ import plotly.express as px
 from dash import html, dcc
 
 from .helpers.data_loader import load_data
-from .helpers.filters import apply_filters, remove_aggregates, style_title
+from .helpers.tools import apply_filters, remove_aggregates, style_title
 from .styles import CHART_TITLE_CONFIG, VIZ_COLOR, TEXT_COLOR, FONT_FAMILY
 from .pages.overview import overview as page1_layout
 from .pages.nutrients import nutrients as page2_layout
@@ -32,6 +32,8 @@ def register_callbacks(app):
             html.H1("404: Not found"),
             html.P(f"No page for `{pathname}`")
         ]))
+
+    #================================================================================
 
     @app.callback(
         Output('total-indicators-display', 'children'),
