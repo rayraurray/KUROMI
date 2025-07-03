@@ -1,18 +1,53 @@
 from dash import html, dcc
 from ..styles import BACKGROUND_COLOR, TEXT_COLOR, FONT_FAMILY, VIZ_COLOR
 from ..helpers.data_loader import load_data
-from ..sidebar import get_sidebar
-from ..header import get_header
-
-# FOR NANH AND NGAN,
-# IF YOU WANT TO BUILD ANOTHER PAGE, JUST USE THE `overview.py` FILE FOR REFERNCE
-# FOR HOW TO BUILD A PAGE
+from ..graph import get_graph
+from ..card import get_card
+from ..filters import get_country_filter, get_year_filter, get_nutrients_filter
 
 df = load_data()
 
-def get_vizualizations():
-    return
+manure = [
+    html.Div(
+        style={
+            'display': 'flex',
+            'justifyContent': 'space-between',
+            'margin': '0px 100px 30px 100px',
+            'flexDirection': 'column',
+        },
 
-manure = html.Div([
+        children=[
+            get_country_filter(df),
+            get_year_filter(df),
+            get_nutrients_filter(df)
+        ]
+    ),
 
-])
+    html.Div(
+        style={
+            'display': 'grid',
+            'grid-template-columns': '1fr 1fr',
+            'grid-gap': '20px',
+            'margin': '0px 100px 0px 100px'
+        },
+
+        children=[
+            # Total Manure Card
+            get_card('kpi-total-manure', "Total Livestock Manure Production"),
+
+            # Average Net Input Card
+            get_card('kpi-avg-net-input', "Average Net Input of Manure"),
+
+            # Percentage Card
+            get_card('kpi-pct-manure', "% Manure-related Categories"),
+
+            # Top Country by Net Input Card
+            get_card('kpi-top-country', "Top Country by Net Input"),
+
+            get_graph('chart-production-line'),
+            get_graph('chart-management-bar'),
+            get_graph('chart-treemap'),
+            get_graph('chart-box-plot')
+        ]
+    )
+]

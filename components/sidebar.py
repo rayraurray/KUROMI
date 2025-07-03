@@ -50,7 +50,7 @@ def get_sidebar():
         className='sidebar',
         style={
             'flex': '0 0 220px',
-            'padding': '20px',
+            # 'padding': '20px',
             'backgroundColor': VIZ_COLOR,
             'height': '100%'
         }

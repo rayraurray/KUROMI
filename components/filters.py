@@ -76,7 +76,7 @@ def get_nutrients_filter(df):
     return _build_multi_dropdown(
         id='nutrient-dropdown',
         label='Nutrient',
-        options=sorted(df['nutrient'].unique()),
+        options=sorted(df['nutrients'].unique()),
         flex=1
     )
 
