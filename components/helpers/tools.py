@@ -36,11 +36,11 @@ def apply_filters(
 
     # Nutrient filter
     if selected_nutrients and 'All' not in selected_nutrients:
-        d = d[d['nutrient'].isin(selected_nutrients)]
+        d = d[d['nutrients'].isin(selected_nutrients)]
 
     # Unit filter
     if selected_units and 'All' not in selected_units:
-        d = d[d['unit_of_measure'].isin(selected_units)]
+        d = d[d['measure_unit'].isin(selected_units)]
 
     # Measure category filter
     if selected_categories and 'All' not in selected_categories:

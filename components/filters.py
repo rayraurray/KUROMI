@@ -85,7 +85,7 @@ def get_unit_filter(df):
     return _build_multi_dropdown(
         id='unit-dropdown',
         label='Unit',
-        options=sorted(df['unit_of_measure'].unique()),
+        options=sorted(df['measure_unit'].unique()),
         flex=1
     )
 

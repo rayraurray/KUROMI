@@ -3,7 +3,7 @@ from ..styles import BACKGROUND_COLOR, TEXT_COLOR, FONT_FAMILY, VIZ_COLOR
 from ..helpers.data_loader import load_data
 from ..card import get_card
 from ..graph import get_graph
-from ..filters import get_category_filter, get_year_filter, get_year_slider
+from ..filters import get_category_filter, get_year_filter, get_year_slider,get_country_filter, get_unit_filter
 
 df = load_data()
 
@@ -18,7 +18,9 @@ overview = [
 
         children=[
             get_category_filter(df),
-            get_year_slider(df)
+            get_year_slider(df),
+            get_unit_filter(df),
+            get_country_filter(df)
         ]
     ),
 

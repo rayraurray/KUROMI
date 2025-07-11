@@ -37,10 +37,10 @@ def register_callbacks(app):
 
     @app.callback(
         Output('total-indicators-display', 'children'),
-        [ Input('category-dropdown', 'value'), Input('year-slider', 'value') ]
+        [ Input('category-dropdown', 'value'), Input('year-slider', 'value'), Input('unit-dropdown','value'),Input('country-dropdown','value') ]
     )
-    def update_total_indicators(selected_category, selected_years):
-        filtered = apply_filters(df, selected_category, selected_years)
+    def update_total_indicators(selected_category, selected_years, selected_units, selected_countries):
+        filtered = apply_filters(df, selected_category, selected_years, selected_units, selected_countries)
         filtered = filtered[~filtered['country'].isin(['World'])]
 
         total = filtered['obs_value'].sum()
