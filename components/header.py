@@ -13,7 +13,7 @@ def get_header(title, bg):
             'backgroundRepeat': 'no-repeat',
             'backgroundPosition': 'center',
             'backgroundSize': 'cover',
-            'padding': '100px',
+            'padding': '50px',
             'margin': '0px',
         }
     )

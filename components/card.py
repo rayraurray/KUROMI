@@ -1,7 +1,7 @@
 from dash import html, dcc
 from .styles import TEXT_COLOR, FONT_FAMILY, VIZ_COLOR
 
-def get_card(id, title):
+def get_card(id, title, span, font_size):
     return html.Div(
         id=f'{id}-card',
         children=[
@@ -18,17 +18,17 @@ def get_card(id, title):
             html.Div(
                 id=id,
                 style={
-                    'fontSize': '64px',
+                    'fontSize': f'{font_size}',
                     'fontWeight': 'bold',
                     'color': TEXT_COLOR,
-                    'padding-bottom': '10px'
+                    'padding': '20px 0px'
                 }
             )
         ],
         style={
             'backgroundColor': VIZ_COLOR,
             # 'flex': '1',
-            'grid-column': 'span 2',
+            'grid-column': f'span {span}',
             'height': '150px',
             'width': '100%',
             'padding': '',

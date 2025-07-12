@@ -10,17 +10,17 @@ df = load_data()
 overview = [
     html.Div(
         style={
-            'display': 'flex',
-            'justifyContent': 'space-between',
-            'margin': '0px 100px 30px 100px',
-            'flexDirection': 'column',
+            'display': 'grid',
+            'grid-template-columns': '1fr 1fr',
+            'grid-gap': '20px',
+            'margin': '0px 0px'
         },
 
         children=[
-            get_category_filter(df),
-            get_year_slider(df),
-            get_unit_filter(df),
-            get_country_filter(df)
+            get_category_filter(df, 2),
+            get_year_slider(df, 2),
+            get_unit_filter(df, 2),
+            get_country_filter(df, 2)
         ]
     ),
 
@@ -29,12 +29,12 @@ overview = [
             'display': 'grid',
             'grid-template-columns': '1fr 1fr',
             'grid-gap': '20px',
-            'margin': '0px 100px 0px 100px'
+            'margin': '50px 0px 0px 0px'
         },
 
         children=[
             # Summary Card
-            get_card('total-indicators-display', "Total Indicators"),
+            get_card('total-indicators-display', "Total Indicators", 2, '64px'),
 
             # Trend Chart
             get_graph('trend-chart'),

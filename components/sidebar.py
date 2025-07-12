@@ -41,7 +41,7 @@ def get_sidebar():
                 ],
                 className='sidebar-menu',
                 style={
-                    'padding-top': '20px',
+                    'padding': '15px',
                     'color': TEXT_COLOR,
                     'font-family': FONT_FAMILY,
                 }
@@ -52,6 +52,6 @@ def get_sidebar():
             'flex': '0 0 220px',
             # 'padding': '20px',
             'backgroundColor': VIZ_COLOR,
-            'height': '100%'
+            # 'height': '100%'
         }
     )
