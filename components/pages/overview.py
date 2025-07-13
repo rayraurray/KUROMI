@@ -17,10 +17,10 @@ overview = [
         },
 
         children=[
-            get_category_filter(df, 2),
+            get_category_filter(df, 1),
+            get_unit_filter(df, 1),
+            get_country_filter(df, 1),
             get_year_slider(df, 2),
-            get_unit_filter(df, 2),
-            get_country_filter(df, 2)
         ]
     ),
 
@@ -37,16 +37,16 @@ overview = [
             get_card('total-indicators-display', "Total Indicators", 2, '64px'),
 
             # Trend Chart
-            get_graph('trend-chart'),
+            get_graph('trend-chart', 1),
 
             # 3D Globe
-            get_graph('globe-chart'),
+            get_graph('globe-chart', 1),
 
             # Line Chart
-            get_graph('race-chart'),
+            get_graph('race-chart', 1),
 
             # Area Chart
-            get_graph('area-chart')
+            get_graph('area-chart', 1)
         ]
     )
 ]

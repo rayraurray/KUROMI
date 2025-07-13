@@ -9,7 +9,7 @@ def get_card(id, title, span, font_size):
                 title,
                 style={
                     'color': TEXT_COLOR,
-                    'margin-bottom': 10,
+                    'margin': '10px 0px',
                     'fontSize': '20px',
                     'fontWeight': 'normal',
                     'font-family': FONT_FAMILY,
@@ -18,24 +18,28 @@ def get_card(id, title, span, font_size):
             html.Div(
                 id=id,
                 style={
+                    'flexGrow': '1',
+                    'display': 'flex',
+                    'alignItems': 'center',
+                    'justifyContent': 'center',
                     'fontSize': f'{font_size}',
                     'fontWeight': 'bold',
                     'color': TEXT_COLOR,
-                    'padding': '20px 0px'
+                    'width': '100%'
                 }
             )
         ],
         style={
             'backgroundColor': VIZ_COLOR,
-            # 'flex': '1',
             'grid-column': f'span {span}',
             'height': '150px',
             'width': '100%',
-            'padding': '',
             'borderRadius': '10px',
             'boxShadow': '0 2px 4px rgba(0,0,0,0.1)',
             'textAlign': 'center',
-            'margin': '0x 100px 0px 100px',
-            'overflow': 'hidden'
+            'overflow': 'hidden',
+            'display': 'flex',
+            'flexDirection': 'column',
+            'alignItems': 'center',
         }
     )

@@ -17,7 +17,7 @@ html, body {
 
 .rc-slider-mark-text {
     color: var(--text-color);
-    font-size: 9px;
+    font-size: 10px;
 }
 
 /* Control styling */
