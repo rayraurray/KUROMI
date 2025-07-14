@@ -18,7 +18,6 @@ overview = [
 
         children=[
             get_category_filter(df, 1),
-            get_unit_filter(df, 1),
             get_country_filter(df, 1),
             get_year_slider(df, 2),
         ]
@@ -34,13 +33,13 @@ overview = [
 
         children=[
             # Summary Card
-            get_card('total-indicators-display', "Total Indicators", 2, '64px'),
+            get_card('total-indicators-display', "Total Indicators", 1, '32px'),
+            get_card('total-countries', "Total Countries", 1, '32px'),
+            get_card('avg-nutrient', "Average Nutrient Balance", 1, '32px'),
+            get_card('percent-normal', "% Normal Observation Status", 1, '32px'),
 
             # Trend Chart
-            get_graph('trend-chart', 1),
-
-            # 3D Globe
-            get_graph('globe-chart', 1),
+            get_graph('trend-chart', 2),
 
             # Line Chart
             get_graph('race-chart', 1),
