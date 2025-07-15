@@ -27,7 +27,8 @@ html, body {
 #unit-dropdown .Select-control,
 #water-type-dropdown .Select-control,
 #erosion-risk-dropdown .Select-control,
-#year-dropdown .Select-control {
+#year-dropdown .Select-control,
+#status-dropdown .Select-control {
     background-color: var(--viz-color) !important;
     border: 1px solid var(--text-color) !important;
     color: var(--text-color) !important;
@@ -47,7 +48,9 @@ html, body {
 #erosion-risk-dropdown .Select-value-label,
 #erosion-risk-dropdown .Select-placeholder,
 #year-risk-dropdown .Select-value-label,
-#year-risk-dropdown .Select-placeholder {
+#year-risk-dropdown .Select-placeholder,
+#status-dropdown .Select-value-label,
+#status-dropdown .Select-placeholder {
     color: var(--text-color) !important;
 }
 
@@ -65,7 +68,9 @@ html, body {
 #erosion-risk-dropdown .Select-arrow,
 #erosion-risk-dropdown .Select-arrow-zone,
 #year-dropdown .Select-arrow,
-#year-dropdown .Select-arrow-zone {
+#year-dropdown .Select-arrow-zone,
+#status-dropdown .Select-arrow,
+#status-dropdown .Select-arrow-zone {
     color: var(--text-color) !important;
 }
 
@@ -76,7 +81,8 @@ html, body {
 #unit-dropdown .Select-menu-outer,
 #water-type-dropdown .Select-menu-outer,
 #erosion-risk-dropdown .Select-menu-outer,
-#year-dropdown .Select-menu-outer {
+#year-dropdown .Select-menu-outer,
+#status-dropdown .Select-menu-outer {
     background-color: var(--background-color) !important;
     color: var(--text-color) !important;
     border: 1px solid var(--text-color) !important;
@@ -90,7 +96,8 @@ html, body {
 #unit-dropdown .Select-option,
 #water-type-dropdown .Select-option,
 #erosion-risk-dropdown .Select-option
-#year-dropdown .Select-option {
+#year-dropdown .Select-option,
+#status-dropdown .Select-option {
     color: var(--text-color) !important;
     padding: 10px 12px;
     margin-bottom: 4px;
@@ -104,7 +111,8 @@ html, body {
 #unit-dropdown .Select-option.is-focused,
 #water-type-dropdown .Select-option.is-focused,
 #erosion-risk-dropdown .Select-option.is-focused,
-#year-dropdown .Select-option.is-focused {
+#year-dropdown .Select-option.is-focused,
+#status-dropdown .Select-option.is-focused {
     background-color: var(--viz-color) !important;
 }
 
@@ -115,7 +123,8 @@ html, body {
 #unit-dropdown .Select-option.is-selected,
 #water-type-dropdown .Select-option.is-selected,
 #erosion-risk-dropdown .Select-option.is-selected,
-#year-dropdown .Select-option.is-selected {
+#year-dropdown .Select-option.is-selected,
+#status-dropdown .Select-option.is-selected {
     background-color: var(--text-color) !important;
     color: var(--background-color) !important;
 }
@@ -127,6 +136,7 @@ html, body {
 #unit-dropdown .Select-input > input,
 #water-type-dropdown .Select-input > input,
 #erosion-risk-dropdown .Select-input > input,
-#year-dropdown .Select-input > input {
+#year-dropdown .Select-input > input,
+#status-dropdown .Select-input > input {
     color: var(--text-color) !important;
 }

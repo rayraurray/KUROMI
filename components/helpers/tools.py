@@ -12,7 +12,8 @@ def apply_filters(
     selected_units=None,
     selected_categories=None,
     selected_water_types=None,
-    selected_erosion_levels=None
+    selected_erosion_levels=None,
+    selected_status=None
 ):
     """
     Apply optional multi-select filters. Each selection list may contain 'All'.
@@ -53,6 +54,9 @@ def apply_filters(
     # Erosion risk level filter
     if selected_erosion_levels and 'All' not in selected_erosion_levels:
         d = d[d['erosion_risk_level'].isin(selected_erosion_levels)]
+
+    if selected_status and 'All' not in selected_status:
+        d= d[d['observation_status'].isin(selected_status)]
 
     return d
 

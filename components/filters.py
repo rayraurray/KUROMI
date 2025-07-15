@@ -130,3 +130,12 @@ def get_erosion_filter(df, span=2):
         flex=1,
         span=span
     )
+
+def get_status_filter(df, span=2):
+    return _build_multi_dropdown(
+        id='status-dropdown',
+        label='Observation Status',
+        options=sorted(df['observation_status'].dropna().unique()),
+        flex=1,
+        span=span
+    )
