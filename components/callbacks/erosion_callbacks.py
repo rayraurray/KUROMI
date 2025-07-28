@@ -1,87 +1,288 @@
 from dash import Input, Output
-import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from dash import html, dcc
-import pandas as pd
-import numpy as np
 
 from ..helpers.get_continent import get_continent
 from ..helpers.tools import apply_filters, style_title
-from ..styles import CHART_TITLE_CONFIG, VIZ_COLOR, TEXT_COLOR, FONT_FAMILY
+from ..styles import VIZ_COLOR, TEXT_COLOR, FONT_FAMILY
 
 def get_erosion_callbacks(df, app):
-    """
-    Focused erosion callbacks with three insightful visualizations
-    """
-    
+
     # KPI 1: Total Observations
     @app.callback(
         Output('kpi-total-observations', 'children'),
         Input('country-dropdown', 'value'),
         Input('year-slider', 'value'),
         Input('erosion-risk-dropdown', 'value'),
-        Input('status-dropdown', 'value')
+        Input('erosion-type-dropdown', 'value')
     )
-    def update_total_observations(countries, years, erosion_levels, status):
+    def update_total_observations(countries, years, erosion_levels, erosion_types):
         erosion_measures = df[df['measure_category'].str.contains('erosion', case=False, na=False)]
         d = apply_filters(erosion_measures, selected_countries=countries, year_range=years, 
-                         selected_erosion_levels=erosion_levels, selected_status=status)
+                         selected_erosion_levels=erosion_levels)
+        
+        # Apply erosion type filter
+        if erosion_types and 'All' not in erosion_types:
+            d = d[d['measure_category'].isin(erosion_types)]
         
         total = len(d)
         return f"{total:,}"
 
-    # KPI 2: Critical Risk Areas (High/Very High/Severe/Critical risk levels)
+    # KPI 2: Agricultural Land at Risk
     @app.callback(
-        Output('kpi-critical-risk-areas', 'children'),
+        Output('kpi-land-at-risk', 'children'),
         Input('country-dropdown', 'value'),
         Input('year-slider', 'value'),
         Input('erosion-risk-dropdown', 'value'),
-        Input('status-dropdown', 'value')
+        Input('erosion-type-dropdown', 'value')
     )
-    def update_critical_risk_areas(countries, years, erosion_levels, status):
+    def update_land_at_risk(countries, years, erosion_levels, erosion_types):
         erosion_measures = df[df['measure_category'].str.contains('erosion', case=False, na=False)]
         d = apply_filters(erosion_measures, selected_countries=countries, year_range=years, 
-                         selected_erosion_levels=erosion_levels, selected_status=status)
+                         selected_erosion_levels=erosion_levels)
+        
+        # Apply erosion type filter
+        if erosion_types and 'All' not in erosion_types:
+            d = d[d['measure_category'].isin(erosion_types)]
+        
+        # Get total agricultural land affected by erosion
+        total_land_data = d[d['erosion_risk_level'] == 'Total']
+        if total_land_data.empty:
+            # If no 'Total' data, calculate from all risk levels
+            avg_land = d['obs_value'].mean() if not d.empty else 0
+        else:
+            avg_land = total_land_data['obs_value'].mean()
+        
+        return f"{avg_land:.1f}%"
+
+    # KPI 3: Severe Risk Percentage
+    @app.callback(
+        Output('kpi-severe-risk-percent', 'children'),
+        Input('country-dropdown', 'value'),
+        Input('year-slider', 'value'),
+        Input('erosion-risk-dropdown', 'value'),
+        Input('erosion-type-dropdown', 'value')
+    )
+    def update_severe_risk_percent(countries, years, erosion_levels, erosion_types):
+        erosion_measures = df[df['measure_category'].str.contains('erosion', case=False, na=False)]
+        d = apply_filters(erosion_measures, selected_countries=countries, year_range=years, 
+                         selected_erosion_levels=erosion_levels)
+        
+        # Apply erosion type filter
+        if erosion_types and 'All' not in erosion_types:
+            d = d[d['measure_category'].isin(erosion_types)]
         
         if d.empty:
-            return "0"
+            return "0%"
         
-        critical_indicators = ['High', 'Very high', 'Severe', 'Critical', 'Extreme']
-        critical_count = d[d['erosion_risk_level'].str.contains('|'.join(critical_indicators), case=False, na=False)].shape[0]
-        return f"{critical_count:,}"
+        # Exclude 'Total' observations for this calculation
+        d_filtered = d[d['erosion_risk_level'] != 'Total']
+        if d_filtered.empty:
+            return "0%"
+        
+        severe_count = len(d_filtered[d_filtered['erosion_risk_level'] == 'Severe'])
+        total_count = len(d_filtered)
+        percentage = (severe_count / total_count) * 100 if total_count > 0 else 0
+        
+        return f"{percentage:.1f}%"
 
-    # KPI 3: Average Erosion Intensity
+    # KPI 4: High-Risk Countries
     @app.callback(
-        Output('kpi-avg-erosion-intensity', 'children'),
+        Output('kpi-high-risk-countries', 'children'),
         Input('country-dropdown', 'value'),
         Input('year-slider', 'value'),
         Input('erosion-risk-dropdown', 'value'),
-        Input('status-dropdown', 'value')
+        Input('erosion-type-dropdown', 'value')
     )
-    def update_avg_erosion_intensity(countries, years, erosion_levels, status):
+    def update_high_risk_countries(countries, years, erosion_levels, erosion_types):
         erosion_measures = df[df['measure_category'].str.contains('erosion', case=False, na=False)]
         d = apply_filters(erosion_measures, selected_countries=countries, year_range=years, 
-                         selected_erosion_levels=erosion_levels, selected_status=status)
+                         selected_erosion_levels=erosion_levels)
         
-        avg = d['obs_value'].mean() if not d.empty else 0
-        return f"{avg:.1f}"
+        # Apply erosion type filter
+        if erosion_types and 'All' not in erosion_types:
+            d = d[d['measure_category'].isin(erosion_types)]
+        
+        # Count countries with High or Severe erosion risk
+        high_risk_indicators = ['High', 'Severe']
+        high_risk_data = d[d['erosion_risk_level'].isin(high_risk_indicators)]
+        high_risk_countries_count = high_risk_data['country'].nunique() if not high_risk_data.empty else 0
+        
+        return f"{high_risk_countries_count}"
 
-    # KPI 4: Countries Affected
+    # HOVER DETAIL CALLBACKS
     @app.callback(
-        Output('kpi-countries-affected', 'children'),
+        Output('kpi-total-observations-card', 'title'),
         Input('country-dropdown', 'value'),
         Input('year-slider', 'value'),
         Input('erosion-risk-dropdown', 'value'),
-        Input('status-dropdown', 'value')
+        Input('erosion-type-dropdown', 'value')
     )
-    def update_countries_affected(countries, years, erosion_levels, status):
+    def update_total_observations_hover(countries, years, erosion_levels, erosion_types):
         erosion_measures = df[df['measure_category'].str.contains('erosion', case=False, na=False)]
         d = apply_filters(erosion_measures, selected_countries=countries, year_range=years, 
-                         selected_erosion_levels=erosion_levels, selected_status=status)
+                         selected_erosion_levels=erosion_levels)
         
-        unique_countries = d['country'].nunique() if not d.empty else 0
-        return f"{unique_countries:,}"
+        # Apply erosion type filter
+        if erosion_types and 'All' not in erosion_types:
+            d = d[d['measure_category'].isin(erosion_types)]
+        
+        if d.empty:
+            return "No observations found for selected filters"
+        
+        type_breakdown = d['measure_category'].value_counts()
+        risk_breakdown = d[d['erosion_risk_level'] != 'Total']['erosion_risk_level'].value_counts()
+        year_range = f"{d['year'].min()}-{d['year'].max()}" if d['year'].nunique() > 1 else str(d['year'].iloc[0])
+        
+        # Build strings with consistent formatting
+        newline = '\n'
+        type_lines = []
+        for erosion_type, count in type_breakdown.items():
+            type_lines.append(f"• {erosion_type}: {count} observations")
+        
+        risk_lines = []
+        for risk, count in risk_breakdown.items():
+            risk_lines.append(f"• {risk}: {count} observations")
+        
+        return f"""Total Observations: {len(d):,}
+
+By Erosion Type:
+{newline.join(type_lines)}
+
+By Risk Level:
+{newline.join(risk_lines)}
+
+Year Range: {year_range}
+Countries: {d['country'].nunique()} unique"""
+
+    @app.callback(
+        Output('kpi-land-at-risk-card', 'title'),
+        Input('country-dropdown', 'value'),
+        Input('year-slider', 'value'),
+        Input('erosion-risk-dropdown', 'value'),
+        Input('erosion-type-dropdown', 'value')
+    )
+    def update_land_at_risk_hover(countries, years, erosion_levels, erosion_types):
+        erosion_measures = df[df['measure_category'].str.contains('erosion', case=False, na=False)]
+        d = apply_filters(erosion_measures, selected_countries=countries, year_range=years, 
+                         selected_erosion_levels=erosion_levels)
+        
+        # Apply erosion type filter
+        if erosion_types and 'All' not in erosion_types:
+            d = d[d['measure_category'].isin(erosion_types)]
+        
+        if d.empty:
+            return "No land risk data available"
+        
+        total_land_data = d[d['erosion_risk_level'] == 'Total']
+        if total_land_data.empty:
+            country_details = d.groupby('country')['obs_value'].mean().sort_values(ascending=False)
+            data_source = "calculated from risk levels"
+        else:
+            country_details = total_land_data.groupby('country')['obs_value'].mean().sort_values(ascending=False)
+            data_source = "total land measurements"
+        
+        top_countries = country_details.head(8)
+        
+        # Build strings with consistent formatting
+        newline = '\n'
+        country_lines = []
+        for country, percentage in top_countries.items():
+            country_lines.append(f"• {country}: {percentage:.1f}%")
+        
+        return f"""Agricultural Land at Risk:
+
+Top Countries:
+{newline.join(country_lines)}
+
+Total countries: {len(country_details)}
+Data source: {data_source}"""
+
+    @app.callback(
+        Output('kpi-severe-risk-percent-card', 'title'),
+        Input('country-dropdown', 'value'),
+        Input('year-slider', 'value'),
+        Input('erosion-risk-dropdown', 'value'),
+        Input('erosion-type-dropdown', 'value')
+    )
+    def update_severe_risk_percent_hover(countries, years, erosion_levels, erosion_types):
+        erosion_measures = df[df['measure_category'].str.contains('erosion', case=False, na=False)]
+        d = apply_filters(erosion_measures, selected_countries=countries, year_range=years, 
+                         selected_erosion_levels=erosion_levels)
+        
+        # Apply erosion type filter
+        if erosion_types and 'All' not in erosion_types:
+            d = d[d['measure_category'].isin(erosion_types)]
+        
+        if d.empty:
+            return "No data available"
+        
+        d_filtered = d[d['erosion_risk_level'] != 'Total']
+        severe_data = d_filtered[d_filtered['erosion_risk_level'] == 'Severe']
+        
+        if severe_data.empty:
+            return f"No severe risk areas in selection\nTotal observations: {len(d_filtered)}"
+        
+        severe_by_country = severe_data['country'].value_counts()
+        
+        # Build strings with consistent formatting
+        newline = '\n'
+        country_lines = []
+        for country, count in severe_by_country.head(8).items():
+            country_lines.append(f"• {country}: {count} observations")
+        
+        return f"""Severe Risk Analysis:
+
+{len(severe_data)} severe out of {len(d_filtered)} total
+({len(severe_data)/len(d_filtered)*100:.1f}%)
+
+Countries with severe risk:
+{newline.join(country_lines)}"""
+
+    @app.callback(
+        Output('kpi-high-risk-countries-card', 'title'),
+        Input('country-dropdown', 'value'),
+        Input('year-slider', 'value'),
+        Input('erosion-risk-dropdown', 'value'),
+        Input('erosion-type-dropdown', 'value')
+    )
+    def update_high_risk_countries_hover(countries, years, erosion_levels, erosion_types):
+        erosion_measures = df[df['measure_category'].str.contains('erosion', case=False, na=False)]
+        d = apply_filters(erosion_measures, selected_countries=countries, year_range=years, 
+                         selected_erosion_levels=erosion_levels)
+        
+        # Apply erosion type filter
+        if erosion_types and 'All' not in erosion_types:
+            d = d[d['measure_category'].isin(erosion_types)]
+        
+        high_risk_indicators = ['High', 'Severe']
+        high_risk_data = d[d['erosion_risk_level'].isin(high_risk_indicators)]
+        
+        if high_risk_data.empty:
+            return "No high-risk countries found"
+        
+        # Get the complete list of high-risk countries with details
+        country_details = high_risk_data.groupby('country').agg({
+            'erosion_risk_level': lambda x: ', '.join(sorted(x.unique())),
+            'obs_value': 'mean'
+        }).round(1).sort_values('obs_value', ascending=False)
+        
+        total_countries = len(country_details)
+        high_only = len(high_risk_data[high_risk_data['erosion_risk_level'] == 'High']['country'].unique())
+        severe_count = len(high_risk_data[high_risk_data['erosion_risk_level'] == 'Severe']['country'].unique())
+        
+        # Build strings with consistent formatting
+        newline = '\n'
+        country_lines = []
+        for country, row in country_details.iterrows():
+            country_lines.append(f"• {country}: {row['obs_value']:.1f}% ({row['erosion_risk_level']})")
+        
+        return f"""High-Risk Countries ({total_countries} total):
+
+Complete List:
+{newline.join(country_lines)}
+
+Summary: {severe_count} severe, {high_only} high-only"""
 
     # Visualization 1: Erosion Risk Evolution Over Time
     @app.callback(
@@ -89,12 +290,16 @@ def get_erosion_callbacks(df, app):
         Input('country-dropdown', 'value'),
         Input('year-slider', 'value'),
         Input('erosion-risk-dropdown', 'value'),
-        Input('status-dropdown', 'value')
+        Input('erosion-type-dropdown', 'value')
     )
-    def update_erosion_temporal_evolution(countries, years, erosion_levels, status):
+    def update_erosion_temporal_evolution(countries, years, erosion_levels, erosion_types):
         erosion_measures = df[df['measure_category'].str.contains('erosion', case=False, na=False)]
         d = apply_filters(erosion_measures, selected_countries=countries, year_range=years, 
-                         selected_erosion_levels=erosion_levels, selected_status=status)
+                         selected_erosion_levels=erosion_levels)
+        
+        # Apply erosion type filter
+        if erosion_types and 'All' not in erosion_types:
+            d = d[d['measure_category'].isin(erosion_types)]
         
         if d.empty:
             fig = go.Figure()
@@ -104,111 +309,110 @@ def get_erosion_callbacks(df, app):
                             paper_bgcolor=VIZ_COLOR, plot_bgcolor=VIZ_COLOR)
             return fig
         
-        # Add continent information
-        if 'continent' not in d.columns:
-            d['continent'] = d['country'].apply(get_continent)
-        
-        # Temporal analysis by erosion type and continent
-        temporal_data = d.groupby(['year', 'measure_category', 'continent']).agg({
-            'obs_value': ['mean', 'count', 'std']
+        # Create temporal analysis
+        temporal_data = d.groupby(['year', 'measure_category']).agg({
+            'obs_value': ['sum', 'count', 'mean', 'std']
         }).reset_index()
         
-        temporal_data.columns = ['year', 'measure_category', 'continent', 'avg_intensity', 'observation_count', 'volatility']
+        temporal_data.columns = ['year', 'measure_category', 'total_erosion', 'observation_count', 'avg_intensity', 'volatility']
         temporal_data['volatility'] = temporal_data['volatility'].fillna(0)
         
-        # Create subplot with secondary y-axis
+        # Create subplot with stacked area and volatility
         fig = make_subplots(
             rows=2, cols=1,
-            subplot_titles=('Average Erosion Intensity Over Time', 'Observation Count and Risk Volatility'),
-            vertical_spacing=0.12,
-            specs=[[{"secondary_y": True}], [{"secondary_y": True}]]
+            subplot_titles=('Cumulative Erosion Impact by Type', 'Observation Volatility'),
+            vertical_spacing=0.15,
+            row_heights=[0.7, 0.3]
         )
         
-        # Color palette for different erosion types
-        colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57']
+        # Define color palette
+        colors = {
+            'Water erosion': '#1f77b4',
+            'Wind erosion': '#ff7f0e', 
+            'Tillage erosion': '#2ca02c',
+            'Other erosion': '#d62728'
+        }
+        
+        # Top panel: Stacked area chart
         erosion_types = temporal_data['measure_category'].unique()
         
-        # Top panel: Average intensity over time
-        for i, erosion_type in enumerate(erosion_types):
+        for erosion_type in erosion_types:
             type_data = temporal_data[temporal_data['measure_category'] == erosion_type]
-            yearly_avg = type_data.groupby('year')['avg_intensity'].mean().reset_index()
+            yearly_total = type_data.groupby('year')['total_erosion'].sum().reset_index()
             
             fig.add_trace(
                 go.Scatter(
-                    x=yearly_avg['year'],
-                    y=yearly_avg['avg_intensity'],
-                    mode='lines+markers',
-                    name=f'{erosion_type}',
-                    line=dict(color=colors[i % len(colors)], width=3),
-                    marker=dict(size=8),
-                    fill='tonexty' if i > 0 else 'tozeroy',
-                    fillcolor=f'rgba({int(colors[i % len(colors)][1:3], 16)}, {int(colors[i % len(colors)][3:5], 16)}, {int(colors[i % len(colors)][5:7], 16)}, 0.3)'
+                    x=yearly_total['year'],
+                    y=yearly_total['total_erosion'],
+                    mode='lines',
+                    name=erosion_type,
+                    stackgroup='one',
+                    fillcolor=colors.get(erosion_type, '#999999'),
+                    line=dict(color=colors.get(erosion_type, '#999999'), width=0.5),
+                    hovertemplate='%{y:.0f}<extra></extra>'
                 ),
                 row=1, col=1
             )
         
-        # Bottom panel: Observation count (bars) and volatility (line)
-        yearly_totals = temporal_data.groupby('year').agg({
-            'observation_count': 'sum',
-            'volatility': 'mean'
-        }).reset_index()
+        # Bottom panel: Volatility indicator
+        yearly_volatility = temporal_data.groupby('year')['volatility'].mean().reset_index()
         
         fig.add_trace(
-            go.Bar(
-                x=yearly_totals['year'],
-                y=yearly_totals['observation_count'],
-                name='Observations',
-                marker_color='rgba(70, 130, 180, 0.8)',
-                yaxis='y3'
+            go.Scatter(
+                x=yearly_volatility['year'],
+                y=yearly_volatility['volatility'],
+                mode='lines+markers',
+                name='Risk Volatility',
+                line=dict(color='#e74c3c', width=3),
+                marker=dict(size=8, color='#e74c3c'),
+                fill='tozeroy',
+                fillcolor='rgba(231, 76, 60, 0.3)',
+                showlegend=False
             ),
             row=2, col=1
         )
         
-        fig.add_trace(
-            go.Scatter(
-                x=yearly_totals['year'],
-                y=yearly_totals['volatility'],
-                mode='lines+markers',
-                name='Risk Volatility',
-                line=dict(color='orange', width=3),
-                marker=dict(size=10, color='orange'),
-                yaxis='y4'
-            ),
-            row=2, col=1, secondary_y=True
-        )
-        
         # Update layout
         fig.update_layout(
-            title=style_title('Erosion Risk Evolution: Temporal Trends and Patterns'),
+            title=dict(
+                text='Erosion Risk Evolution: Temporal Trends and Volatility',
+                x=0.5,  # Center the title
+                xanchor='center',
+                font=dict(size=18, color=TEXT_COLOR, family=FONT_FAMILY)
+            ),
             paper_bgcolor=VIZ_COLOR,
             plot_bgcolor=VIZ_COLOR,
             font=dict(color=TEXT_COLOR, family=FONT_FAMILY),
             margin=dict(l=60, r=60, t=100, b=60),
-            height=700,
+            height=600,
             hovermode='x unified',
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
         )
         
         # Update axes
-        fig.update_xaxes(title_text="Year", row=2, col=1)
-        fig.update_yaxes(title_text="Average Intensity", row=1, col=1)
-        fig.update_yaxes(title_text="Observations", row=2, col=1)
-        fig.update_yaxes(title_text="Risk Volatility", row=2, col=1, secondary_y=True)
+        fig.update_xaxes(title_text="", showgrid=False, row=1, col=1)
+        fig.update_xaxes(title_text="Year", showgrid=False, row=2, col=1)
+        fig.update_yaxes(title_text="Total Erosion Impact", showgrid=True, gridcolor='rgba(255,255,255,0.1)', row=1, col=1)
+        fig.update_yaxes(title_text="Volatility", showgrid=True, gridcolor='rgba(255,255,255,0.1)', row=2, col=1)
         
         return fig
 
-    # Visualization 2: Geographic Risk Distribution Heatmap
+    # Visualization 2: Geographic Risk Distribution Matrix
     @app.callback(
-        Output('erosion-geographic-heatmap', 'figure'),
+        Output('erosion-geographic-matrix', 'figure'),
         Input('country-dropdown', 'value'),
         Input('year-slider', 'value'),
         Input('erosion-risk-dropdown', 'value'),
-        Input('status-dropdown', 'value')
+        Input('erosion-type-dropdown', 'value')
     )
-    def update_erosion_geographic_heatmap(countries, years, erosion_levels, status):
+    def update_erosion_geographic_matrix(countries, years, erosion_levels, erosion_types):
         erosion_measures = df[df['measure_category'].str.contains('erosion', case=False, na=False)]
         d = apply_filters(erosion_measures, selected_countries=countries, year_range=years, 
-                         selected_erosion_levels=erosion_levels, selected_status=status)
+                         selected_erosion_levels=erosion_levels)
+        
+        # Apply erosion type filter
+        if erosion_types and 'All' not in erosion_types:
+            d = d[d['measure_category'].isin(erosion_types)]
         
         if d.empty:
             fig = go.Figure()
@@ -222,134 +426,152 @@ def get_erosion_callbacks(df, app):
         if 'continent' not in d.columns:
             d['continent'] = d['country'].apply(get_continent)
         
-        # Create comprehensive geographic analysis
+        # Prepare data for visualization
         geo_data = d.groupby(['country', 'measure_category', 'continent']).agg({
-            'obs_value': ['mean', 'count', 'max', 'std']
+            'obs_value': ['mean', 'count', 'max']
         }).reset_index()
         
-        geo_data.columns = ['country', 'measure_category', 'continent', 'avg_intensity', 'observation_count', 'max_intensity', 'risk_variability']
-        geo_data['risk_variability'] = geo_data['risk_variability'].fillna(0)
+        geo_data.columns = ['country', 'measure_category', 'continent', 'avg_intensity', 'observation_count', 'max_intensity']
         
-        # Create matrix for heatmap
-        heatmap_matrix = geo_data.pivot_table(
+        # Create subplot with 2 visualizations
+        fig = make_subplots(
+            rows=1, cols=2,
+            subplot_titles=('Top 10 Countries: Erosion Intensity Heatmap', 'Continental Risk Analysis'),
+            specs=[[{"type": "heatmap"}, {"type": "scatter"}]],
+            horizontal_spacing=0.20,
+            column_widths=[0.48, 0.48]
+        )
+        
+        # Left panel: Clean heatmap with top 10 countries
+        top_countries = geo_data.groupby('country')['observation_count'].sum().nlargest(10).index
+        heatmap_data = geo_data[geo_data['country'].isin(top_countries)]
+        
+        # Pivot for heatmap
+        heatmap_matrix = heatmap_data.pivot_table(
             index='country', 
             columns='measure_category', 
             values='avg_intensity', 
             fill_value=0
         )
         
-        # Create subplot layout
-        fig = make_subplots(
-            rows=2, cols=2,
-            subplot_titles=('Average Erosion Intensity by Country & Type', 'Risk Distribution by Continent', 
-                          'Observation Density', 'High Risk Concentration'),
-            specs=[[{"type": "heatmap"}, {"type": "bar"}],
-                   [{"type": "scatter"}, {"type": "box"}]],
-            vertical_spacing=0.12,
-            horizontal_spacing=0.08
-        )
+        # Sort countries by total intensity for better readability
+        heatmap_matrix['total'] = heatmap_matrix.sum(axis=1)
+        heatmap_matrix = heatmap_matrix.sort_values('total', ascending=False).drop('total', axis=1)
         
-        # Top-left: Main heatmap
         fig.add_trace(
             go.Heatmap(
                 z=heatmap_matrix.values,
-                x=heatmap_matrix.columns,
-                y=heatmap_matrix.index,
-                colorscale='Reds',
+                x=[col.replace(' erosion', '') for col in heatmap_matrix.columns],
+                y=heatmap_matrix.index.tolist(),
+                colorscale='YlOrRd',
                 showscale=True,
-                colorbar=dict(x=0.45, len=0.4),
-                text=heatmap_matrix.values.round(2),
-                texttemplate="%{text}",
-                textfont={"size": 10},
-                hoverinformation='z+x+y'
+                colorbar=dict(
+                    title="Intensity", 
+                    x=0.41,
+                    y=0.5,
+                    len=0.85
+                ),
+                hovertemplate='Country: %{y}<br>Type: %{x}<br>Intensity: %{z:.1f}<extra></extra>'
             ),
             row=1, col=1
         )
         
-        # Top-right: Continental risk distribution
-        continent_risk = geo_data.groupby('continent')['avg_intensity'].mean().sort_values(ascending=False)
+        # Right panel: Continental bubble chart
+        continent_summary = geo_data.groupby('continent').agg({
+            'avg_intensity': 'mean',
+            'observation_count': 'sum',
+            'country': 'nunique'
+        }).reset_index()
+        
+        # Calculate risk score for bubble size
+        continent_summary['risk_score'] = (continent_summary['avg_intensity'] * 
+                                          continent_summary['observation_count'] / 
+                                          continent_summary['observation_count'].max() * 100)
+        
+        continent_colors = {
+            'Asia': '#FF6B6B', 'Europe': '#4ECDC4', 'Africa': '#45B7D1',
+            'North America': '#96CEB4', 'South America': '#FECA57', 'Oceania': '#FF8C69'
+        }
+        
         fig.add_trace(
-            go.Bar(
-                x=continent_risk.index,
-                y=continent_risk.values,
-                marker_color='rgba(255, 99, 71, 0.8)',
-                text=continent_risk.values.round(2),
-                textposition='auto',
+            go.Scatter(
+                x=continent_summary['observation_count'],
+                y=continent_summary['avg_intensity'],
+                mode='markers+text',
+                marker=dict(
+                    size=continent_summary['risk_score'],
+                    color=[continent_colors.get(c, '#999999') for c in continent_summary['continent']],
+                    opacity=0.7,
+                    line=dict(width=2, color='white'),
+                    sizemode='area',
+                    sizeref=2.*max(continent_summary['risk_score'])/(40.**2),
+                    sizemin=20
+                ),
+                text=continent_summary['continent'],
+                textposition='middle center',
+                textfont=dict(size=12, color='white', family=FONT_FAMILY),
+                hovertemplate='<b>%{text}</b><br>Observations: %{x:,.0f}<br>Avg Intensity: %{y:.1f}<br>Countries: %{customdata}<extra></extra>',
+                customdata=continent_summary['country'],
+                showlegend=False
             ),
             row=1, col=2
         )
         
-        # Bottom-left: Observation density scatter
-        fig.add_trace(
-            go.Scatter(
-                x=geo_data['observation_count'],
-                y=geo_data['avg_intensity'],
-                mode='markers',
-                marker=dict(
-                    size=geo_data['risk_variability'] * 2 + 5,
-                    color=geo_data['max_intensity'],
-                    colorscale='Viridis',
-                    showscale=True,
-                    colorbar=dict(x=1.05, len=0.4),
-                    opacity=0.7,
-                    line=dict(width=1, color='white')
-                ),
-                text=[f"{country}<br>Continent: {continent}<br>Max Risk: {max_risk:.1f}" 
-                      for country, continent, max_risk in zip(geo_data['country'], geo_data['continent'], geo_data['max_intensity'])],
-                hovertemplate='<b>%{text}</b><br>Observations: %{x}<br>Avg Intensity: %{y:.2f}<extra></extra>'
-            ),
-            row=2, col=1
-        )
-        
-        # Bottom-right: Risk distribution by erosion type
-        for erosion_type in geo_data['measure_category'].unique():
-            type_data = geo_data[geo_data['measure_category'] == erosion_type]
-            fig.add_trace(
-                go.Box(
-                    y=type_data['avg_intensity'],
-                    name=erosion_type,
-                    boxpoints='outliers',
-                    jitter=0.3,
-                    pointpos=-1.8
-                ),
-                row=2, col=2
-            )
-        
         # Update layout
         fig.update_layout(
-            title=style_title('Geographic Erosion Risk Distribution: Comprehensive Analysis'),
+            title=dict(
+                text='Geographic Erosion Risk Distribution Analysis',
+                x=0.5,  # Center the title
+                xanchor='center',
+                font=dict(size=18, color=TEXT_COLOR, family=FONT_FAMILY)
+            ),
             paper_bgcolor=VIZ_COLOR,
             plot_bgcolor=VIZ_COLOR,
             font=dict(color=TEXT_COLOR, family=FONT_FAMILY),
-            margin=dict(l=80, r=120, t=100, b=80),
-            height=800,
+            margin=dict(l=80, r=80, t=100, b=60),
+            height=500,
             showlegend=False
         )
         
-        # Update axes labels
-        fig.update_xaxes(title_text="Erosion Type", row=1, col=1)
-        fig.update_yaxes(title_text="Country", row=1, col=1)
-        fig.update_xaxes(title_text="Continent", row=1, col=2)
-        fig.update_yaxes(title_text="Avg Intensity", row=1, col=2)
-        fig.update_xaxes(title_text="Observation Count", row=2, col=1)
-        fig.update_yaxes(title_text="Avg Intensity", row=2, col=1)
-        fig.update_xaxes(title_text="Erosion Type", row=2, col=2)
-        fig.update_yaxes(title_text="Risk Intensity", row=2, col=2)
+        # Update axes
+        fig.update_xaxes(title_text="Erosion Type", tickangle=0, row=1, col=1)
+        fig.update_yaxes(title_text="", row=1, col=1)
+        fig.update_xaxes(
+            title_text="Total Observations", 
+            type="log",
+            tickmode='linear',
+            dtick=1,
+            range=[0.5, 3.5],
+            row=1, col=2
+        )
+        fig.update_yaxes(
+            title_text="Average Intensity",
+            range=[5, 30],
+            row=1, col=2
+        )
+        
+        # Style all subplots with consistent grid
+        fig.update_xaxes(showgrid=True, gridcolor='rgba(255,255,255,0.1)')
+        fig.update_yaxes(showgrid=True, gridcolor='rgba(255,255,255,0.1)')
         
         return fig
 
-    # Visualization 3: Risk Level Distribution & Comparative Analysis
+    # Visualization 3: Risk Pattern Analysis
     @app.callback(
-        Output('erosion-risk-comparison', 'figure'),
+        Output('erosion-risk-patterns', 'figure'),
         Input('country-dropdown', 'value'),
         Input('year-slider', 'value'),
         Input('erosion-risk-dropdown', 'value'),
-        Input('status-dropdown', 'value')
+        Input('erosion-type-dropdown', 'value')
     )
-    def update_erosion_risk_comparison(countries, years, erosion_levels, status):
+    def update_erosion_risk_patterns(countries, years, erosion_levels, erosion_types):
         erosion_measures = df[df['measure_category'].str.contains('erosion', case=False, na=False)]
         d = apply_filters(erosion_measures, selected_countries=countries, year_range=years, 
-                         selected_erosion_levels=erosion_levels, selected_status=status)
+                         selected_erosion_levels=erosion_levels)
+        
+        # Apply erosion type filter
+        if erosion_types and 'All' not in erosion_types:
+            d = d[d['measure_category'].isin(erosion_types)]
         
         if d.empty:
             fig = go.Figure()
@@ -363,138 +585,125 @@ def get_erosion_callbacks(df, app):
         if 'continent' not in d.columns:
             d['continent'] = d['country'].apply(get_continent)
         
-        # Create subplot layout for comparative analysis
-        fig = make_subplots(
-            rows=2, cols=2,
-            subplot_titles=('Risk Level Distribution by Erosion Type', 'Continental Risk Comparison', 
-                          'Risk Intensity Violin Plots', 'Risk Level Evolution'),
-            specs=[[{"type": "bar"}, {"type": "scatter"}],
-                   [{"type": "violin"}, {"type": "scatter"}]],
-            vertical_spacing=0.15,
-            horizontal_spacing=0.1
-        )
+        # Risk Distribution Matrix
+        fig = go.Figure()
         
-        # Top-left: Risk level distribution by erosion type
-        risk_dist = d.groupby(['measure_category', 'erosion_risk_level']).size().unstack(fill_value=0)
+        # FILTER OUT "Total" risk level
+        d_filtered = d[d['erosion_risk_level'].str.lower() != 'total']
         
-        colors_risk = ['#2E8B57', '#FFD700', '#FF6347', '#DC143C', '#8B0000']
-        for i, risk_level in enumerate(risk_dist.columns):
-            fig.add_trace(
-                go.Bar(
-                    x=risk_dist.index,
-                    y=risk_dist[risk_level],
-                    name=risk_level,
-                    marker_color=colors_risk[i % len(colors_risk)],
-                    text=risk_dist[risk_level],
-                    textposition='auto'
-                ),
-                row=1, col=1
-            )
-        
-        # Top-right: Continental risk scatter with trend
-        continent_analysis = d.groupby(['continent', 'year']).agg({
+        # Prepare data
+        risk_summary = d_filtered.groupby(['erosion_risk_level', 'measure_category']).agg({
             'obs_value': ['mean', 'count', 'std']
         }).reset_index()
-        continent_analysis.columns = ['continent', 'year', 'avg_risk', 'count', 'std']
-        continent_analysis['std'] = continent_analysis['std'].fillna(0)
         
-        continent_colors = {'Asia': '#FF6B6B', 'Europe': '#4ECDC4', 'Africa': '#45B7D1', 
-                          'North America': '#96CEB4', 'South America': '#FECA57', 'Oceania': '#FF8C69'}
+        risk_summary.columns = ['erosion_risk_level', 'measure_category', 'avg_intensity', 'count', 'std']
         
-        for continent in continent_analysis['continent'].unique():
-            cont_data = continent_analysis[continent_analysis['continent'] == continent]
+        # Define risk level order (excluding "Total")
+        risk_order = ['Low', 'Moderate', 'Tolerable', 'High', 'Severe']
+        risk_summary['risk_rank'] = risk_summary['erosion_risk_level'].map(
+            {level: i for i, level in enumerate(risk_order)}
+        )
+        risk_summary = risk_summary.sort_values('risk_rank')
+        
+        # Create bubble matrix
+        erosion_types = risk_summary['measure_category'].unique()
+        risk_levels = [r for r in risk_order if r in risk_summary['erosion_risk_level'].unique()]
+        
+        # Updated color scale for your specific risk levels
+        color_scale = {
+            'Low': '#BADD7F', 
+            'Moderate': '#fff394', 
+            'Tolerable': '#a2d2ff',
+            'High': '#ec8366',
+            'Severe': '#f00000'
+        }
+        
+        for erosion_type in erosion_types:
+            type_data = risk_summary[risk_summary['measure_category'] == erosion_type]
+            
+            # Calculate bubble sizes based on observation count
+            max_count = risk_summary['count'].max()
+            bubble_sizes = (type_data['count'] / max_count * 100).fillna(0)
+            
             fig.add_trace(
                 go.Scatter(
-                    x=cont_data['year'],
-                    y=cont_data['avg_risk'],
-                    mode='markers+lines',
-                    name=continent,
+                    x=[erosion_type.replace(' erosion', '')] * len(type_data),
+                    y=type_data['erosion_risk_level'],
+                    mode='markers+text',
                     marker=dict(
-                        size=cont_data['count']/2,
-                        color=continent_colors.get(continent, '#999999'),
-                        opacity=0.7,
-                        line=dict(width=1, color='white')
+                        size=bubble_sizes,
+                        color=[color_scale.get(r, "#C8C0C0") for r in type_data['erosion_risk_level']],
+                        opacity=0.8,
+                        line=dict(width=2, color='white'),
+                        sizemode='diameter',
+                        sizeref=2,
+                        sizemin=10
                     ),
-                    line=dict(color=continent_colors.get(continent, '#999999'), width=2)
-                ),
-                row=1, col=2
+                    text=type_data['count'].astype(str),
+                    textfont=dict(size=10, color='white', family=FONT_FAMILY),
+                    textposition='middle center',
+                    hovertemplate='<b>%{x} - %{y}</b><br>Observations: %{text}<br>Avg Intensity: %{customdata:.1f}<extra></extra>',
+                    customdata=type_data['avg_intensity'],
+                    showlegend=False
+                )
             )
         
-        # Bottom-left: Violin plots for risk distribution
-        erosion_types = d['measure_category'].unique()
-        colors_violin = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4']
-        
-        for i, erosion_type in enumerate(erosion_types):
-            type_data = d[d['measure_category'] == erosion_type]
-            fig.add_trace(
-                go.Violin(
-                    y=type_data['obs_value'],
-                    name=erosion_type,
-                    box_visible=True,
-                    meanline_visible=True,
-                    fillcolor=colors_violin[i % len(colors_violin)],
-                    opacity=0.6,
-                    x0=erosion_type
-                ),
-                row=2, col=1
+        # Add intensity gradient background
+        for i, risk_level in enumerate(risk_levels):
+            fig.add_shape(
+                type="rect",
+                xref="paper", yref="y",
+                x0=0, x1=1,
+                y0=i-0.4, y1=i+0.4,
+                fillcolor=color_scale.get(risk_level, "#E4E2E2"),
+                opacity=0.2,
+                layer="below",
+                line_width=0
             )
         
-        # Bottom-right: Risk evolution with confidence intervals
-        yearly_risk = d.groupby('year').agg({
-            'obs_value': ['mean', 'std', 'count']
-        }).reset_index()
-        yearly_risk.columns = ['year', 'mean_risk', 'std_risk', 'count']
-        yearly_risk['std_risk'] = yearly_risk['std_risk'].fillna(0)
-        yearly_risk['ci_upper'] = yearly_risk['mean_risk'] + 1.96 * (yearly_risk['std_risk'] / np.sqrt(yearly_risk['count']))
-        yearly_risk['ci_lower'] = yearly_risk['mean_risk'] - 1.96 * (yearly_risk['std_risk'] / np.sqrt(yearly_risk['count']))
-        
-        # Add confidence interval
-        fig.add_trace(
-            go.Scatter(
-                x=yearly_risk['year'].tolist() + yearly_risk['year'].tolist()[::-1],
-                y=yearly_risk['ci_upper'].tolist() + yearly_risk['ci_lower'].tolist()[::-1],
-                fill='toself',
-                fillcolor='rgba(70, 130, 180, 0.2)',
-                line=dict(color='rgba(255,255,255,0)'),
-                name='95% Confidence Interval',
-                showlegend=True
-            ),
-            row=2, col=2
-        )
-        
-        # Add mean line
-        fig.add_trace(
-            go.Scatter(
-                x=yearly_risk['year'],
-                y=yearly_risk['mean_risk'],
-                mode='lines+markers',
-                name='Mean Risk',
-                line=dict(color='red', width=3),
-                marker=dict(size=8, color='red')
-            ),
-            row=2, col=2
-        )
-        
-        # Update layout
+        # Update layout for single clean visualization
         fig.update_layout(
-            title=style_title('Erosion Risk Analysis: Distribution Patterns and Comparisons'),
+            title=dict(
+                text='Erosion Risk Pattern Matrix: Distribution by Type and Severity',
+                x=0.5,  # Center the title
+                xanchor='center',
+                font=dict(size=18, color=TEXT_COLOR, family=FONT_FAMILY)
+            ),
             paper_bgcolor=VIZ_COLOR,
             plot_bgcolor=VIZ_COLOR,
             font=dict(color=TEXT_COLOR, family=FONT_FAMILY),
-            margin=dict(l=80, r=80, t=100, b=80),
-            height=800,
-            hovermode='closest',
-            legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+            margin=dict(l=120, r=80, t=100, b=120),
+            height=600,
+            xaxis=dict(
+                title="Erosion Type",
+                showgrid=True,
+                gridcolor='rgba(255,255,255,0.1)',
+                tickangle=0
+            ),
+            yaxis=dict(
+                title="Risk Level",
+                showgrid=False,
+                categoryorder='array',
+                categoryarray=risk_levels
+            ),
+            showlegend=False
         )
         
-        # Update axes
-        fig.update_xaxes(title_text="Erosion Type", row=1, col=1)
-        fig.update_yaxes(title_text="Count", row=1, col=1)
-        fig.update_xaxes(title_text="Year", row=1, col=2)
-        fig.update_yaxes(title_text="Average Risk", row=1, col=2)
-        fig.update_xaxes(title_text="Erosion Type", row=2, col=1)
-        fig.update_yaxes(title_text="Risk Intensity", row=2, col=1)
-        fig.update_xaxes(title_text="Year", row=2, col=2)
-        fig.update_yaxes(title_text="Risk Level", row=2, col=2)
+        # Add annotations for clarity with adjusted positions
+        fig.add_annotation(
+            text="Bubble size = Number of observations",
+            xref="paper", yref="paper",
+            x=0.5, y=-0.20,
+            showarrow=False,
+            font=dict(size=12, color=TEXT_COLOR)
+        )
+        
+        fig.add_annotation(
+            text="Color intensity = Risk severity",
+            xref="paper", yref="paper",
+            x=0.5, y=-0.25,
+            showarrow=False,
+            font=dict(size=12, color=TEXT_COLOR)
+        )
         
         return fig

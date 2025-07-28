@@ -113,10 +113,14 @@ def get_category_filter(df, span=2):
 
 
 def get_water_filter(df, span=2):
+    """Water type filter without 'Not applicable' option"""
+    water_types = sorted(df['water_type'].dropna().unique())
+    # Remove 'Not applicable' if it exists
+    water_types = [wt for wt in water_types if wt != 'Not applicable']
     return _build_multi_dropdown(
         id='water-type-dropdown',
         label='Water Type',
-        options=sorted(df['water_type'].dropna().unique()),
+        options=water_types,
         flex=1,
         span=span
     )
@@ -138,4 +142,29 @@ def get_status_filter(df, span=2):
         options=sorted(df['observation_status'].dropna().unique()),
         flex=1,
         span=span
+    )
+    
+def get_erosion_type_filter_fixed(df, span=2):
+    # Filter to only show erosion-related measure categories
+    erosion_data = df[df['measure_category'].str.contains('erosion', case=False, na=False)]
+    erosion_types = sorted(erosion_data['measure_category'].unique())
+    
+    return _build_multi_dropdown(
+        id='erosion-type-dropdown',
+        label='Erosion Type',
+        options=erosion_types,  # This will be ['Water erosion', 'Wind erosion']
+        flex=1,
+        span=span
+    )
+
+def get_contamination_type_filter(span=2):
+   """Contamination type filter using consistent styling"""
+   contamination_types = ['Nitrate', 'Phosphorus', 'Pesticides', 'Pesticide Presence']
+   return _build_multi_dropdown(
+       id='contamination-type-dropdown',
+       label='Contamination Type',
+       options=contamination_types,
+       default_all=True,
+       flex=1,
+       span=span
     )
