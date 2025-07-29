@@ -31,6 +31,7 @@ def _build_multi_dropdown(id, label, options, default_all=True, flex=1, span=2):
         'grid-column': f'span {span}',
     }
     )
+    
 
 
 def get_country_filter(df, span=2):
@@ -113,10 +114,9 @@ def get_category_filter(df, span=2):
 
 
 def get_water_filter(df, span=2):
-    """Water type filter without 'Not applicable' option"""
     water_types = sorted(df['water_type'].dropna().unique())
-    # Remove 'Not applicable' if it exists
-    water_types = [wt for wt in water_types if wt != 'Not applicable']
+    # Remove 'Not applicable' and 'Total'
+    water_types = [wt for wt in water_types if wt not in ['Not applicable', 'Total']]
     return _build_multi_dropdown(
         id='water-type-dropdown',
         label='Water Type',
@@ -127,10 +127,14 @@ def get_water_filter(df, span=2):
 
 
 def get_erosion_filter(df, span=2):
+    erosion_levels = sorted(df['erosion_risk_level'].dropna().unique())
+    # Remove 'Not applicable' and 'Total'
+    erosion_levels = [level for level in erosion_levels if level not in ['Not applicable', 'Total']]
     return _build_multi_dropdown(
         id='erosion-risk-dropdown',
         label='Erosion Risk Level',
-        options=sorted(df['erosion_risk_level'].dropna().unique()),
+        options= erosion_levels,
+        default_all=True,
         flex=1,
         span=span
     )
@@ -158,13 +162,22 @@ def get_erosion_type_filter_fixed(df, span=2):
     )
 
 def get_contamination_type_filter(span=2):
-   """Contamination type filter using consistent styling"""
-   contamination_types = ['Nitrate', 'Phosphorus', 'Pesticides', 'Pesticide Presence']
-   return _build_multi_dropdown(
-       id='contamination-type-dropdown',
-       label='Contamination Type',
-       options=contamination_types,
-       default_all=True,
-       flex=1,
-       span=span
+    # Define contamination types with proper values
+    contamination_types = [
+        {'label': 'Nitrate', 'value': 'Nitrate'},
+        {'label': 'Phosphorus', 'value': 'Phosphorus'},
+        {'label': 'Pesticides', 'value': 'Pesticides'},
+        {'label': 'Pesticide Presence', 'value': 'Pesticide_Presence'}
+    ]
+    
+    # Extract just the values for the options parameter
+    contamination_values = [ct['value'] for ct in contamination_types]
+    
+    return _build_multi_dropdown(
+        id='contamination-type-dropdown',
+        label='Contamination Type',
+        options=contamination_values,
+        default_all=True,
+        flex=1,
+        span=span
     )
