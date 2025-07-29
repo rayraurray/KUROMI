@@ -33,6 +33,12 @@ html, body {
     border: 1px solid var(--text-color) !important;
     color: var(--text-color) !important;
 }
+#erosion-type-dropdown .Select-control,
+#contamination-type-dropdown .Select-control {
+    background-color: var(--viz-color) !important;
+    border: 1px solid var(--text-color) !important;
+    color: var(--text-color) !important;
+}
 
 /* Placeholder and label */
 #category-dropdown .Select-value-label,
@@ -51,6 +57,12 @@ html, body {
 #year-risk-dropdown .Select-placeholder,
 #status-dropdown .Select-value-label,
 #status-dropdown .Select-placeholder {
+    color: var(--text-color) !important;
+}
+#erosion-type-dropdown .Select-value-label,
+#erosion-type-dropdown .Select-placeholder,
+#contamination-type-dropdown .Select-value-label,
+#contamination-type-dropdown .Select-placeholder {
     color: var(--text-color) !important;
 }
 
@@ -73,6 +85,12 @@ html, body {
 #status-dropdown .Select-arrow-zone {
     color: var(--text-color) !important;
 }
+#erosion-type-dropdown .Select-arrow,
+#erosion-type-dropdown .Select-arrow-zone,
+#contamination-type-dropdown .Select-arrow,
+#contamination-type-dropdown .Select-arrow-zone {
+    color: var(--text-color) !important;
+}
 
 /* Options menu */
 #category-dropdown .Select-menu-outer,
@@ -88,6 +106,14 @@ html, body {
     border: 1px solid var(--text-color) !important;
     margin-top: 2px;
 }
+#erosion-type-dropdown .Select-menu-outer,
+#contamination-type-dropdown .Select-menu-outer {
+    background-color: var(--background-color) !important;
+    color: var(--text-color) !important;
+    border: 1px solid var(--text-color) !important;
+    margin-top: 2px;
+}
+
 
 /* Each option */
 #category-dropdown .Select-option,
@@ -98,6 +124,13 @@ html, body {
 #erosion-risk-dropdown .Select-option
 #year-dropdown .Select-option,
 #status-dropdown .Select-option {
+    color: var(--text-color) !important;
+    padding: 10px 12px;
+    margin-bottom: 4px;
+    border-radius: 4px;
+}
+#erosion-type-dropdown .Select-option,
+#contamination-type-dropdown .Select-option {
     color: var(--text-color) !important;
     padding: 10px 12px;
     margin-bottom: 4px;
@@ -115,6 +148,10 @@ html, body {
 #status-dropdown .Select-option.is-focused {
     background-color: var(--viz-color) !important;
 }
+#erosion-type-dropdown .Select-option.is-focused,
+#contamination-type-dropdown .Select-option.is-focused {
+    background-color: var(--viz-color) !important;
+}
 
 /* Selected option */
 #category-dropdown .Select-option.is-selected,
@@ -128,6 +165,11 @@ html, body {
     background-color: var(--text-color) !important;
     color: var(--background-color) !important;
 }
+#erosion-type-dropdown .Select-option.is-selected,
+#contamination-type-dropdown .Select-option.is-selected {
+    background-color: var(--text-color) !important;
+    color: var(--background-color) !important;
+}
 
 /* Input inside dropdown */
 #category-dropdown .Select-input > input,
@@ -138,5 +180,9 @@ html, body {
 #erosion-risk-dropdown .Select-input > input,
 #year-dropdown .Select-input > input,
 #status-dropdown .Select-input > input {
+    color: var(--text-color) !important;
+}
+#erosion-type-dropdown .Select-input > input,
+#contamination-type-dropdown .Select-input > input {
     color: var(--text-color) !important;
 }

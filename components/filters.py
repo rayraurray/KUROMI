@@ -23,7 +23,8 @@ def _build_multi_dropdown(id, label, options, default_all=True, flex=1, span=2):
             value=default_value,
             multi=True,
             clearable=False,
-            style={'backgroundColor': VIZ_COLOR, 'color': TEXT_COLOR}
+            style={'backgroundColor': VIZ_COLOR, 
+                   'color': TEXT_COLOR}
         )
     ],
     style={
@@ -116,7 +117,7 @@ def get_category_filter(df, span=2):
 def get_water_filter(df, span=2):
     water_types = sorted(df['water_type'].dropna().unique())
     # Remove 'Not applicable' and 'Total'
-    water_types = [wt for wt in water_types if wt not in ['Not applicable', 'Total']]
+    water_types = [wt for wt in water_types if wt not in ['Not applicable', 'Total', 'Coastal water']]
     return _build_multi_dropdown(
         id='water-type-dropdown',
         label='Water Type',
