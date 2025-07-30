@@ -23,7 +23,8 @@ def _build_multi_dropdown(id, label, options, default_all=True, flex=1, span=2):
             value=default_value,
             multi=True,
             clearable=False,
-            style={'backgroundColor': VIZ_COLOR, 'color': TEXT_COLOR}
+            style={'backgroundColor': VIZ_COLOR, 
+                   'color': TEXT_COLOR}
         )
     ],
     style={
@@ -31,6 +32,7 @@ def _build_multi_dropdown(id, label, options, default_all=True, flex=1, span=2):
         'grid-column': f'span {span}',
     }
     )
+    
 
 
 def get_country_filter(df, span=2):
@@ -113,20 +115,27 @@ def get_category_filter(df, span=2):
 
 
 def get_water_filter(df, span=2):
+    water_types = sorted(df['water_type'].dropna().unique())
+    # Remove 'Not applicable' and 'Total'
+    water_types = [wt for wt in water_types if wt not in ['Not applicable', 'Total', 'Coastal water']]
     return _build_multi_dropdown(
         id='water-type-dropdown',
         label='Water Type',
-        options=sorted(df['water_type'].dropna().unique()),
+        options=water_types,
         flex=1,
         span=span
     )
 
 
 def get_erosion_filter(df, span=2):
+    erosion_levels = sorted(df['erosion_risk_level'].dropna().unique())
+    # Remove 'Not applicable' and 'Total'
+    erosion_levels = [level for level in erosion_levels if level not in ['Not applicable', 'Total']]
     return _build_multi_dropdown(
         id='erosion-risk-dropdown',
         label='Erosion Risk Level',
-        options=sorted(df['erosion_risk_level'].dropna().unique()),
+        options= erosion_levels,
+        default_all=True,
         flex=1,
         span=span
     )
@@ -136,6 +145,40 @@ def get_status_filter(df, span=2):
         id='status-dropdown',
         label='Observation Status',
         options=sorted(df['observation_status'].dropna().unique()),
+        flex=1,
+        span=span
+    )
+    
+def get_erosion_type_filter_fixed(df, span=2):
+    # Filter to only show erosion-related measure categories
+    erosion_data = df[df['measure_category'].str.contains('erosion', case=False, na=False)]
+    erosion_types = sorted(erosion_data['measure_category'].unique())
+    
+    return _build_multi_dropdown(
+        id='erosion-type-dropdown',
+        label='Erosion Type',
+        options=erosion_types,  # This will be ['Water erosion', 'Wind erosion']
+        flex=1,
+        span=span
+    )
+
+def get_contamination_type_filter(span=2):
+    # Define contamination types with proper values
+    contamination_types = [
+        {'label': 'Nitrate', 'value': 'Nitrate'},
+        {'label': 'Phosphorus', 'value': 'Phosphorus'},
+        {'label': 'Pesticides', 'value': 'Pesticides'},
+        {'label': 'Pesticide Presence', 'value': 'Pesticide_Presence'}
+    ]
+    
+    # Extract just the values for the options parameter
+    contamination_values = [ct['value'] for ct in contamination_types]
+    
+    return _build_multi_dropdown(
+        id='contamination-type-dropdown',
+        label='Contamination Type',
+        options=contamination_values,
+        default_all=True,
         flex=1,
         span=span
     )

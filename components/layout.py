@@ -10,7 +10,7 @@ layout = html.Div([
     dcc.Location(id='url', refresh=False),
 
     # Header stays at the top
-    get_header("Agri-environmental Indicators Dashboard", "bg.gif"),
+    get_header("Agri-environmental Indicators Dashboard", "bg2.gif"),
 
     # THIS is the flex container that lives below the header
     # with the sidebar and the content

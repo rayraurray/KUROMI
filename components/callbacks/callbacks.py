@@ -10,6 +10,8 @@ from ..pages.water import water as page5_layout
 from .overview_callbacks import get_overview_callbacks
 from .manure_callbacks import get_manure_callbacks
 from .nutrients_callbacks import get_nutrients_callbacks
+from .erosion_callbacks import get_erosion_callbacks
+from .water_callbacks import get_water_callbacks
 
 df = load_data()
 
@@ -44,3 +46,11 @@ def register_callbacks(app):
     #================================================================================
 
     get_nutrients_callbacks(df, app)
+    
+    #================================================================================
+
+    get_erosion_callbacks(df, app)
+    
+    #================================================================================
+    
+    get_water_callbacks(df, app)
