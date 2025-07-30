@@ -41,11 +41,11 @@ nutrients = [
             # Trend Chart
             get_graph('dual-line-chart', 1),
 
-            # Line Chart
-            get_graph('scatter-nitrogen-input-output', 1),
-
             # Area Chart
-            get_graph('avg-balance-bar-chart', 2)
+            get_graph('avg-balance-bar-chart', 1),
+
+            # Line Chart
+            get_graph('scatter-nitrogen-input-output', 2)
         ]
     )
 ]
