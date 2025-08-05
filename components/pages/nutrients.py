@@ -3,11 +3,17 @@ from ..styles import BACKGROUND_COLOR, TEXT_COLOR, FONT_FAMILY, VIZ_COLOR
 from ..helpers.data_loader import load_data
 from ..card import get_card
 from ..graph import get_graph
-from ..filters import get_category_filter, get_year_filter, get_year_slider,get_country_filter, get_unit_filter, get_nutrients_filter, get_status_filter
+from ..filters import (
+    get_category_filter, get_year_slider, get_country_filter,
+    get_nutrients_filter, get_status_filter
+)
 
 df = load_data()
 
 nutrients = [
+    # ===========================
+    # FILTER ROW
+    # ===========================
     html.Div(
         style={
             'display': 'grid',
@@ -15,16 +21,18 @@ nutrients = [
             'grid-gap': '20px',
             'margin': '0px 0px'
         },
-
         children=[
             get_category_filter(df, 1),
             get_country_filter(df, 1),
-            get_nutrients_filter(df,1),
-            get_status_filter(df,1),
+            get_nutrients_filter(df, 1),
+            get_status_filter(df, 1),
             get_year_slider(df, 2),
         ]
     ),
 
+    # ===========================
+    # KPI CARDS
+    # ===========================
     html.Div(
         style={
             'display': 'grid',
@@ -32,56 +40,135 @@ nutrients = [
             'grid-gap': '20px',
             'margin': '50px 0px 0px 0px'
         },
-
         children=[
-            # Summary Card
-            get_card('avg-nitrogen', "Average Nitrogen Balance", 1, '32px'),
-            get_card('avg-phosphorus', "Average Phosphorus Balance", 1, '32px'),
-
-            # Trend Chart
-            get_graph('dual-line-chart', 2),
-            html.Div(
-                children=html.P([
-                    html.Strong("Inputs/Outputs Analysis: "), html.Br(),
-                    "This line chart illustrates the trends in nutrient inputs and outputs for both Nitrogen and Phosphorus from 1985 to 2023. Nitrogen inputs (in blue) are consistently the highest, starting around 130M and gradually increasing to a peak of nearly 290M around 2015. "
-                    "Nitrogen outputs (in red) follow a similar upward trend, though consistently lower than inputs, indicating a long-term surplus of nitrogen in the system. This surplus suggests an accumulation of nitrogen in soils, potentially contributing to environmental issues like eutrophication.",
-                    html.Br(), html.Br(),
-                    "Phosphorus inputs (green) and outputs (purple) show a more modest scale, ranging between 20M and 45M for inputs, and 10M to 30M for outputs. The values rise steadily through the early 2000s and plateau slightly before 2015. All four curves experience a steep decline after 2020, with values dropping to near zero by 2023. "
-                    "This sudden drop across all variables likely reflects a disruption in data collection, reporting practices, or availability rather than an actual global halt in nutrient use. The chart highlights the consistent nutrient imbalance over time, particularly for nitrogen, and raises questions about the completeness of recent data."
-                ]),
-                style={'padding': '10px', 'color': TEXT_COLOR, 'background-color': 'rgba(255,255,255,0.05)', 
-                        'border-radius': '8px', 'grid-column': 'span 2'}
-            ),
-
-            # Area Chart
-            get_graph('avg-balance-bar-chart', 2),
-            html.Div(
-                children=html.P([
-                    html.Strong("Average Nutrient Balance Analysis: "), html.Br(),
-                    "This bar chart displays the average nutrient balance per country for Nitrogen (blue) and Phosphorus (red). Nitrogen shows significantly higher average values than Phosphorus across almost all countries. "
-                    "Notable peaks in nitrogen balance are observed in China, India, and the United States, each exceeding 15M or even 20M in average balance, indicating intensive nutrient usage or accumulation in these regions.",
-                    html.Br(), html.Br(),
-                    "Phosphorus levels remain comparatively low, rarely exceeding 5M, and follow similar patterns of distribution, though with smaller magnitudes. Some countries such as Kazakhstan and Latvia show negative average balances for nitrogen, "
-                    "suggesting more output than input—potentially due to soil depletion or better nutrient efficiency. Overall, the chart highlights global disparities in nutrient management, with a few countries driving the bulk of nutrient surpluses."
-                ]),
-                style={'padding': '10px', 'color': TEXT_COLOR, 'background-color': 'rgba(255,255,255,0.05)', 
-                        'border-radius': '8px', 'grid-column': 'span 2'}
-            ),
-
-            # Line Chart
-            get_graph('scatter-nitrogen-input-output', 2),
-            html.Div(
-                children=html.P([
-                    html.Strong("Nitrogen Input vs. Output Analysis: "), html.Br(),
-                    "This scatter plot compares Nitrogen Input vs. Output by Country. Each point represents a country, showing how much nitrogen is applied (input) versus how much is removed or utilized (output). "
-                    "The chart highlights China and the United States as having the highest nitrogen activity, with China leading both in input (~1.6B) and output (~820M), indicating a large surplus and potentially inefficient nitrogen use.",
-                    html.Br(), html.Br(),
-                    "Most other countries cluster at the lower end of the scale, indicating much smaller nitrogen usage. Some countries like India and the European Union show relatively high inputs but lower outputs, suggesting nutrient imbalances or losses. "
-                    "Overall, the chart reveals significant disparities in nitrogen efficiency across nations, with some countries potentially overapplying nitrogen relative to agricultural uptake."
-                ]),
-                style={'padding': '10px', 'color': TEXT_COLOR, 'background-color': 'rgba(255,255,255,0.05)', 
-                        'border-radius': '8px', 'grid-column': 'span 2'}
-            ),
+            get_card('avg-nitrogen', "Avg Nitrogen Balance (Normalized)", 1, '32px'),
+            get_card('avg-phosphorus', "Avg Phosphorus Balance (Normalized)", 1, '32px'),
         ]
-    )
+    ),
+
+    # ===========================
+    # DUAL LINE CHART + EXPLANATION
+    # ===========================
+    html.Div(
+        style={
+            'display': 'grid',
+            'grid-template-columns': '1fr',
+            'grid-gap': '20px',
+            'margin': '40px 0px 0px 0px'
+        },
+        children=[
+            get_graph('dual-line-chart', 1),
+            html.Div(
+                children=html.P([
+                    html.Strong("Inputs/Outputs Analysis (Normalized): "), html.Br(),
+                    "This chart shows normalized trends in nutrient inputs and outputs for Nitrogen and Phosphorus between 1985–2023. "
+                    "Nitrogen inputs remain consistently higher than outputs, suggesting long-term nutrient surplus accumulation, "
+                    "while Phosphorus tracks at lower magnitudes but follows similar patterns. "
+                    "The sharp decline after 2020 likely reflects reporting or data collection issues rather than actual nutrient cessation."
+                ]),
+                style={
+                    'padding': '15px',
+                    'color': TEXT_COLOR,
+                    'background-color': 'rgba(255,255,255,0.05)',
+                    'border-radius': '8px',
+                    'margin-top': '10px',
+                    'line-height': '1.5'
+                }
+            )
+        ]
+    ),
+
+    # ===========================
+    # AVERAGE BALANCE BAR + EXPLANATION
+    # ===========================
+    html.Div(
+        style={
+            'display': 'grid',
+            'grid-template-columns': '1fr',
+            'grid-gap': '20px',
+            'margin': '40px 0px 0px 0px'
+        },
+        children=[
+            get_graph('avg-balance-bar-chart', 1),
+            html.Div(
+                children=html.P([
+                    html.Strong("Avg Nutrient Balance Analysis (Normalized): "), html.Br(),
+                    "This bar chart displays normalized average nutrient balances per country. "
+                    "Nitrogen shows the highest intensity in regions like China, India, and the US, while Phosphorus remains lower globally. "
+                    "Negative balances in countries such as Kazakhstan or Latvia indicate nutrient depletion or efficient nutrient management."
+                ]),
+                style={
+                    'padding': '15px',
+                    'color': TEXT_COLOR,
+                    'background-color': 'rgba(255,255,255,0.05)',
+                    'border-radius': '8px',
+                    'margin-top': '10px',
+                    'line-height': '1.5'
+                }
+            )
+        ]
+    ),
+
+    # ===========================
+    # NITROGEN INPUT VS OUTPUT + EXPLANATION
+    # ===========================
+    html.Div(
+        style={
+            'display': 'grid',
+            'grid-template-columns': '1fr',
+            'grid-gap': '20px',
+            'margin': '40px 0px 0px 0px'
+        },
+        children=[
+            get_graph('scatter-nitrogen-input-output', 1),
+            html.Div(
+                children=html.P([
+                    html.Strong("Nitrogen Input vs Output (Normalized): "), html.Br(),
+                    "This scatter plot compares normalized nitrogen input vs output per country. "
+                    "China and the US dominate both metrics, but inputs exceed outputs significantly, highlighting inefficiency. "
+                    "Other countries cluster at lower scales, revealing disparities in nutrient use and efficiency across nations."
+                ]),
+                style={
+                    'padding': '15px',
+                    'color': TEXT_COLOR,
+                    'background-color': 'rgba(255,255,255,0.05)',
+                    'border-radius': '8px',
+                    'margin-top': '10px',
+                    'line-height': '1.5'
+                }
+            )
+        ]
+    ),
+
+    # ===========================
+    # D3 GROUPED BAR: INPUTS VS OUTPUTS
+    # ===========================
+    html.Div([
+        html.H4("D3 Nutrient Inputs vs Outputs (Normalized)", style={'color': TEXT_COLOR}),
+        dcc.Store(id="nutrients-d3-data"),
+        html.Div(id="nutrients-d3-container", style={
+            "border": "1px solid rgba(255,255,255,0.2)",
+            "height": "400px",
+            "backgroundColor": "rgba(255,255,255,0.02)",
+            "borderRadius": "6px"
+        }),
+        html.Div(id='nutrients-d3-trigger', style={'display': 'none'}),
+        html.Div(
+            children=html.P([
+                html.Strong("Interactive Inputs vs Outputs Analysis: "), html.Br(),
+                "This grouped bar chart compares normalized nutrient inputs (blue) and outputs (red) by country. "
+                "Countries with large gaps between inputs and outputs indicate nutrient surpluses and potential inefficiencies, "
+                "while closer bars show better balance and efficiency."
+            ]),
+            style={
+                'padding': '15px',
+                'color': TEXT_COLOR,
+                'background-color': 'rgba(255,255,255,0.05)',
+                'border-radius': '8px',
+                'margin-top': '10px',
+                'line-height': '1.5'
+            }
+        )
+    ], style={'margin-top': '40px'}),
+
 ]
