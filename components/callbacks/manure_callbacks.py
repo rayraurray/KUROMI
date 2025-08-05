@@ -3,7 +3,7 @@ import plotly.express as px
 from dash import html, dcc
 
 from ..helpers.get_continent import get_continent
-from ..helpers.tools import apply_filters, style_title
+from ..helpers.tools import apply_filters, style_title, normalize_by_agricultural_land
 from ..styles import CHART_TITLE_CONFIG, VIZ_COLOR, TEXT_COLOR, FONT_FAMILY
 
 def get_manure_callbacks(df, app):
@@ -83,7 +83,7 @@ def get_manure_callbacks(df, app):
             locations='country',
             locationmode='country names',
             color='obs_value',
-            color_continuous_scale='Viridis',
+            color_continuous_scale='Turbo',
             projection='orthographic',
             labels={
                 'obs_value':'# of Indicators'
@@ -105,8 +105,8 @@ def get_manure_callbacks(df, app):
             showcoastlines=True,
             showcountries=True,
             showocean=True,
-            bgcolor=VIZ_COLOR,
-            oceancolor='#5E81AC',
+            oceancolor='#4682B4',
+            bgcolor=VIZ_COLOR
         )
 
         return fig
@@ -147,12 +147,14 @@ def get_manure_callbacks(df, app):
 
 
     @app.callback(
-    Output('manure-pie', 'figure'),
-    Input('country-dropdown', 'value'),
-    Input('year-slider', 'value'),
-    Input('nutrient-dropdown', 'value')
+        Output('manure-chartie', 'figure'),
+        Input('country-dropdown', 'value'),
+        Input('year-slider', 'value'),
+        Input('nutrient-dropdown', 'value')
     )
-    def update_manure_pie(countries, years, nutrients):
+    def update_manure_bar_normalized(countries, years, nutrients):
+        import numpy as np
+
         cats = [
             'Manure management',
             'Manure imports',
@@ -162,21 +164,80 @@ def get_manure_callbacks(df, app):
             'Organic fertilisers (excluding livestock manure)'
         ]
 
+        # Filter data
         d = apply_filters(df, selected_countries=countries, year_range=years, selected_nutrients=nutrients, selected_categories=cats)
 
-        # Check or add 'continent' column
-        if 'continent' not in d.columns:
-            d['continent'] = d['country'].apply(get_continent)
+        # Aggregate by country
+        d_country = d.groupby('country', as_index=False)['obs_value'].sum()
 
-        # Aggregate data by continent
-        d_continent = d.groupby('continent', as_index=False)['obs_value'].sum()
+        # Normalize using your provided function
+        d_country = normalize_by_agricultural_land(d_country, df, value_column='obs_value')
 
-        raw_title = 'Manure-Related Indicators by Continent'
+        # Get top 10 countries by normalized value
+        top10 = d_country.sort_values('obs_value_log_normalized', ascending=False).head(10)
 
-        fig = px.pie(
-            d_continent,
+        raw_title = 'Top 10 Countries (Normalized by Ag Land Area) — Manure Indicators'
+
+        fig = px.bar(
+            top10.sort_values('obs_value_log_normalized'),  # sort low to high for horizontal bars
+            x='obs_value_log_normalized',
+            y='country',
+            orientation='h',
+            color='country',
+            title=style_title(raw_title),
+            labels={'obs_value_log_normalized': 'Normalized Value', 'country': 'Country'},
+            color_discrete_sequence=px.colors.qualitative.Set3  # More colorful palette
+        )
+
+        fig.update_layout(
+            title=CHART_TITLE_CONFIG,
+            paper_bgcolor=VIZ_COLOR,
+            plot_bgcolor=VIZ_COLOR,
+            font=dict(color=TEXT_COLOR, family=FONT_FAMILY),
+            margin=dict(l=20, r=20, t=60, b=40),
+            yaxis=dict(tickmode='linear'),
+            showlegend=False
+        )
+
+        return fig
+
+
+
+    @app.callback(
+        Output('manure-baby', 'figure'),
+        Input('country-dropdown', 'value'),
+        Input('year-slider', 'value'),
+        Input('nutrient-dropdown', 'value')
+    )
+    def update_manure_sunburst(countries, years, nutrients):
+        cats = [
+            'Manure management',
+            'Manure imports',
+            'Net input of manure',
+            'Livestock manure production',
+            'Organic fertilisers (excluding livestock manure)'
+        ]
+
+        d = apply_filters(
+            df,
+            selected_countries=countries,
+            year_range=years,
+            selected_nutrients=nutrients,
+            selected_categories=cats
+        )
+
+        # Aggregate just by category (you can add more hierarchy if you want)
+        d_grouped = d.groupby('measure_category', as_index=False)['obs_value'].sum()
+        d_grouped['root'] = 'Manure'
+
+        raw_title = 'Manure Categories Overview'
+
+        fig = px.sunburst(
+            d_grouped,
+            path=['root', 'measure_category'],
             values='obs_value',
-            names='continent',
+            color='measure_category',
+            color_discrete_sequence=px.colors.qualitative.Bold,
             title=style_title(raw_title)
         )
 
@@ -185,47 +246,7 @@ def get_manure_callbacks(df, app):
             paper_bgcolor=VIZ_COLOR,
             plot_bgcolor=VIZ_COLOR,
             font=dict(color=TEXT_COLOR, family=FONT_FAMILY),
-            margin=dict(l=0, r=0, t=60, b=20),
-        )
-        return fig
-
-    @app.callback(
-        Output('manure-funnel', 'figure'),
-        Input('country-dropdown', 'value'),
-        Input('year-slider', 'value'),
-        Input('nutrient-dropdown', 'value')
-    )
-    def update_manure_funnel(countries, years, nutrients):
-        cats = [
-            'Manure management',
-            'Manure imports',
-            # 'Manure withdrawals',
-            'Net input of manure',
-            'Livestock manure production',
-            'Organic fertilisers (excluding livestock manure)'
-        ]
-
-        d = apply_filters(df, selected_countries=countries, year_range=years, selected_nutrients=nutrients, selected_categories=cats)
-
-        d = d.groupby('measure_category', as_index=False)['obs_value'].sum()
-        d = d.sort_values(by='obs_value', ascending=False)
-
-        raw_title = 'Manure Category Volume Funnel'
-
-        fig = px.funnel(
-            d,
-            title=style_title(raw_title),
-            x='obs_value',
-            y='measure_category'
+            margin=dict(t=80, l=0, r=0, b=0)
         )
 
-        fig.update_layout(
-            title=CHART_TITLE_CONFIG,
-            xaxis_title='Year',
-            yaxis_title='Production Volume',
-            plot_bgcolor=VIZ_COLOR,
-            paper_bgcolor=VIZ_COLOR,
-            font=dict(color=TEXT_COLOR, family=FONT_FAMILY),
-            margin=dict(l=0, r=0, t=60, b=20),
-        )
         return fig

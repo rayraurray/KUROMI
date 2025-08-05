@@ -56,12 +56,12 @@ def get_high_risk_countries_d3_viz(df, span=1):
         'padding': '20px'
     })
 
-    
+
 # Load the data
 df = load_data()
 
 water = [
-    
+
     # Filter controls - Only 3 filters + year slider
     html.Div(
         style={
@@ -77,7 +77,7 @@ water = [
             get_year_slider(df, 3)  # Year slider spans all 3 columns
         ]
     ),
-    
+
     # KPI cards with hover support - 4 cards
     html.Div(
         style={
@@ -93,7 +93,7 @@ water = [
             get_card('kpi-worst-contamination-type', 'Worst Pollutant', 1, '28px'),
         ]
     ),
-    
+
     # 4 advanced visualizations
     html.Div(
         style={
@@ -120,7 +120,7 @@ water = [
                         'border-radius': '8px', 'margin-top': '10px', 'line-height': '1.5'}
                 )
             ]),
-            
+
             # Visualization 2: Dynamic Multi-Axis Trends with Abstraction Overlay
             html.Div([
                 get_graph('water-trends-dual-axis', 1),
@@ -135,13 +135,12 @@ water = [
                         " Most significantly, the relatively stable nitrate contamination levels (5-15%) against a backdrop of increasing water abstraction from the 1990s through 2015 suggest either effective nitrogen management practices were implemented or that nitrate monitoring protocols remained inadequate to capture the true extent of fertilizer-related contamination. ",
                         "The lack of clear correlation between water consumption peaks (mid-1990s, 2015) and immediate contamination spikes indicates that agricultural water pollution operates on delayed timescales, where current contamination rates reflect historical farming practices rather than present-day water usage, ",
                         "making this visualization a powerful reminder that today's agricultural decisions will determine water quality challenges for decades to come."
-                        
                     ]),
-                    style={'padding': '15px', 'color': TEXT_COLOR, 'background-color': 'rgba(255,255,255,0.05)', 
+                    style={'padding': '15px', 'color': TEXT_COLOR, 'background-color': 'rgba(255,255,255,0.05)',
                           'border-radius': '8px', 'margin-top': '10px', 'line-height': '1.5'}
                 )
             ]),
-            
+
             # Visualization 3: Water Quality vs Usage Correlation Analysis
             html.Div([
                 get_graph('water-quality-usage-analysis', 1),

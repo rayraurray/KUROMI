@@ -4,7 +4,7 @@ from ..helpers.data_loader import load_data
 from ..card import get_card
 from ..graph import get_graph
 from ..filters import get_category_filter, get_year_slider, get_country_filter
-import dash_html_components as html
+from dash import html
 
 # Load the dataset
 df = load_data()

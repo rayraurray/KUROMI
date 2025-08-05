@@ -60,20 +60,21 @@ manure = [
             ),
 
             # Pie chart by continent and description
-            get_graph('manure-pie', 2),
+            get_graph('manure-chartie', 2),
             html.Div(
                 children=html.P([
-                    html.Strong("Interpreting the Pie Chart:"), " The slices represent continents, aggregated from country data. ",
-                    "Filter to refine which categories contribute most in each region."
+                    html.Strong("Interpreting the Bar Chart:"), 
+                    " This chart displays the top 10 countries based on manure-related indicators, ",
+                    "normalized by agricultural land area (log scale). ",
+                    "Use the filters to explore how different categories and years affect country rankings."
                 ]),
                 style={'grid-column': 'span 2', 'padding': '10px'}
             ),
-
             # Single chart and description
             get_graph('manure-ecdf', 1),
 
             # Funnel chart and description
-            get_graph('manure-funnel', 1),
+            get_graph('manure-baby', 1),
             html.Div(
                 children=html.P([
                     html.Strong("Reading the ECDF Chart:"), " The Empirical Cumulative Distribution Function (ECDF) shows the proportion of observations at or below each value. ",
@@ -83,8 +84,9 @@ manure = [
             ),
             html.Div(
                 children=html.P([
-                    html.Strong("Using the Funnel Chart:"), " Categories are ordered from highest to lowest total values, emphasising the most significant contributors at the top. ",
-                    "Read the category names on the y-axis and their corresponding values on the x-axis, which represent aggregate volumes."
+                    html.Strong("Manure System Snapshot:"), " This colorful sunburst captures the ecosystem of manure-related activities. ",
+                    "Each slice represents a category like livestock production or organic fertiliser use, radiating out from the central node. ",
+                    "The larger the slice, the greater its contribution to the selected total. "
                 ]),
                 style={'grid-column': 'span 1', 'padding': '10px'}
             )
