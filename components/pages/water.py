@@ -1,14 +1,67 @@
 from dash import html, dcc
+import json
 from ..styles import TEXT_COLOR
 from ..helpers.data_loader import load_data
 from ..graph import get_graph
 from ..card import get_card
 from ..filters import get_country_filter, get_year_slider, get_water_filter, get_contamination_type_filter
 
+def get_high_risk_countries_d3_viz(df, span=1):
+    """
+    Creates a D3.js visualization for high-risk countries KPI
+    Shows an interactive bar chart with risk levels and detailed country information
+    """
+    return html.Div([
+        html.H3("High-Risk Countries Interactive Analysis", 
+                style={
+                    'color': TEXT_COLOR, 
+                    'textAlign': 'center',
+                    'marginBottom': '20px',
+                    'fontSize': '18px',
+                    'fontWeight': 'bold'
+                }),
+        
+        # Container for the D3 visualization
+        html.Div(id='d3-high-risk-countries', 
+                style={
+                    'width': '100%', 
+                    'height': '500px',
+                    'border': '1px solid rgba(255,255,255,0.1)',
+                    'borderRadius': '8px',
+                    'backgroundColor': 'rgba(255,255,255,0.02)',
+                    'position': 'relative'
+                }),
+        
+        # Data store for passing filtered data to D3
+        dcc.Store(id='high-risk-countries-data'),
+        
+        # Hidden div for client-side callback output
+        html.Div(id='d3-update-trigger', style={'display': 'none'}),
+        
+        # Legend and controls
+        html.Div([
+            html.Div([
+                html.Span("Risk Level: ", style={'color': TEXT_COLOR, 'fontWeight': 'bold'}),
+                html.Span("Severe (>50%)", style={'color': '#f94449', 'marginRight': '15px'}),
+                html.Span("High (30-50%)", style={'color': '#fdac68', 'marginRight': '15px'}),
+                html.Span("Moderate (15-30%)", style={'color': '#fae588', 'marginRight': '15px'}),
+                html.Span("Low (<15%)", style={'color': '#b9ffaf'})
+            ], style={'textAlign': 'center', 'marginTop': '10px'})
+        ]),
+        
+    ], style={
+        'gridColumn': f'span {span}',
+        'backgroundColor': 'rgba(255,255,255,0.05)',
+        'borderRadius': '8px',
+        'padding': '20px'
+    })
+
+    
 # Load the data
 df = load_data()
 
 water = [
+    
     # Filter controls - Only 3 filters + year slider
     html.Div(
         style={
@@ -41,7 +94,7 @@ water = [
         ]
     ),
     
-    # 3 advanced visualizations
+    # 4 advanced visualizations
     html.Div(
         style={
             'display': 'grid',
@@ -50,23 +103,21 @@ water = [
             'margin': '40px 0px 0px 0px'
         },
         children=[
-            # Visualization 1: Geographic Contamination Analysis
             html.Div([
-                get_graph('water-contamination-geographic', 1),
+                get_high_risk_countries_d3_viz(df, 1),
                 html.Div(
                     children=html.P([
-                        html.Strong("Geographic Water Contamination Analysis: "), html.Br(),
-                        "This geographic visualization reveals a striking paradox where developed nations with strict environmental governance show the highest contamination detection rate, ",
-                        "suggesting that water quality challenges may be more widespread globally than currently documented. ",
-                        "The Flemish Region's alarming 65% contamination rate, alongside Norway and Greece's concerning levels above 55%, likely reflects their sophisticated monitoring networks capable of detecting pollution that remains invisible in countries with limited surveillance infrastructure.",
+                        html.Strong("Interactive High-Risk Countries Analysis: "), html.Br(),
+                        "This D3.js visualization provides an interactive bar chart of countries with contamination rates above 30%. ",
+                        "Each bar is color-coded by risk level: red for severe (>50%), orange for high (30-50%), yellow for moderate (15-30%), and green for low (<15%). ",
+                        "Hover over any bar to see detailed information including the specific contamination rate, number of monitoring sites, and the main pollutant type. ",
                         html.Br(), html.Br(),
-                        "Notably, the clustering of high contamination rates among wealthy European nations and developed countries such as Canada (50%) and Australia (45%) points to the environmental costs of intensive agricultural practices combined with stringent monitoring standards that reveal the true extent of agricultural runoff impacts. ",
-                        "The dramatically lower rates in countries such as Korea (18%), Netherlands (19%), and Austria (16%) may represent either genuinely superior agricultural water management practices or significant underreporting due to monitoring gaps. ",
-                        "This visualization underscores the urgent need for global investment in water quality monitoring infrastructure, as the absence of data in many regions likely masks substantial contamination problems that could threaten both agricultural sustainability and public health - ",
-                        "making the high-detection countries inadvertent early warning systems for worldwide agricultural pollution trends."
+                        "The visualization animates when filters change, providing smooth transitions that help track how different countries move in and out of high-risk categories. ",
+                        "Countries are automatically sorted by contamination severity, with summary statistics displayed in the top-right corner showing average contamination rates and counts of severe vs high-risk countries. ",
+                        "This interactive approach allows for deeper exploration of the data compared to static KPI cards, revealing patterns in agricultural water quality that require immediate attention and policy intervention."
                     ]),
                     style={'padding': '15px', 'color': TEXT_COLOR, 'background-color': 'rgba(255,255,255,0.05)', 
-                          'border-radius': '8px', 'margin-top': '10px', 'line-height': '1.5'}
+                        'border-radius': '8px', 'margin-top': '10px', 'line-height': '1.5'}
                 )
             ]),
             

@@ -71,22 +71,25 @@ erosion = [
                 )
             ]),
             
-            # Visualization 2: Geographic Risk Distribution Matrix
+            # Visualization 2: NORMALIZED Geographic Risk Distribution Matrix
             html.Div([
                 get_graph('erosion-geographic-matrix', 1),
                 html.Div(
                     children=html.P([
-                        html.Strong("Geographic Risk Distribution Analysis:"), html.Br(),
-                        "This visualization reveals three critical geographic patterns that should inform regional soil conservation strategies. ",
-                        "The heatmap exposes a stark 'water erosion dominance' across most monitored countries, with Korea, Japan, New Zealand, and Norway showing the highest water erosion intensities (30+ units). ",
-                        "In contrast, wind erosion remains relatively low across all countries except Australia, indicating that water-based conservation measures should be the primary focus for most regions. ",
+                        html.Strong("Normalized Geographic Risk Distribution Analysis:"), html.Br(),
+                        "This enhanced visualization now shows erosion intensity per agricultural hectare using logarithmic normalization, ",
+                        "revealing the true impact density that was previously hidden by country size differences. Countries with small agricultural areas but high erosion rates now properly rank as high-intensity risks, ",
+                        "while large countries with moderate total erosion may show lower per-hectare intensity. This normalization exposes which agricultural systems are most vulnerable per unit of farmland. ",
                         html.Br(), html.Br(),
-                        "The continental risk analysis reveals a concerning 'data concentration bias' where Europe dominates monitoring efforts with nearly 1,000 observations compared to other continents with fewer than 100 observations each, ",
-                        "suggesting that soil erosion risks in Asia, South America, and Oceania may be significantly underrepresented in global assessments. ",
-                        "Most strategically important, the bubble chart positioning shows that Asia and Oceania combine high average erosion intensity (20+ units) with limited monitoring data, ",
-                        "creating dangerous blind spots where severe erosion may be occurring without adequate surveillance, ",
-                        "while Europe's extensive monitoring reveals moderate but well-documented risks that enable proactive management. ",
-                        "This pattern indicates that international soil conservation funding and technical assistance should prioritize expanding monitoring capabilities in Asia-Pacific regions while leveraging Europe's comprehensive data system as models for global erosion assessment programs."
+                        "The normalized heatmap reveals three critical patterns that should inform targeted intervention strategies. ",
+                        "First, several smaller European countries now emerge as having the highest erosion intensity per agricultural hectare, indicating that intensive farming practices in limited space create concentrated soil degradation. ",
+                        "Second, the continental analysis using normalized data shows that monitoring coverage biases are even more pronounced when accounting for agricultural land area - ",
+                        "regions with limited agricultural monitoring may be experiencing severe per-hectare erosion that remains undetected. ",
+                        html.Br(), html.Br(),
+                        "Most strategically important, the normalized bubble chart positioning reveals that some continents combine high per-hectare erosion intensity with limited monitoring data, ",
+                        "creating dangerous blind spots where severe erosion may be occurring at high density without adequate surveillance. ",
+                        "This pattern indicates that international soil conservation funding should prioritize both expanding monitoring capabilities in under-surveyed regions ",
+                        "and implementing intensive conservation measures in high-density erosion areas identified through this normalization approach."
                     ]),
                     style={'padding': '15px', 'color': TEXT_COLOR, 'background-color': 'rgba(255,255,255,0.05)', 
                           'border-radius': '8px', 'margin-top': '10px', 'line-height': '1.5'}

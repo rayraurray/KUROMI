@@ -3,6 +3,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import pandas as pd
 from ..styles import VIZ_COLOR, TEXT_COLOR
+from ..helpers.tools import normalize_by_agricultural_land
 
 def filter_water_data(df, countries, years, water_types, contamination_types):
     """Filter the dataset based on user selections"""
@@ -359,108 +360,355 @@ Countries Monitored: {int(worst_stats['countries'])}"""
         except Exception as e:
             return "Error loading worst contamination type data"
     
-    # Visualization 1: Geographic Water Contamination
+    # Visualization 1: D3 data callback for high-risk countries
     @app.callback(
-        Output('water-contamination-geographic', 'figure'),
+        Output('high-risk-countries-data', 'data'),
         [Input('country-dropdown', 'value'),
          Input('year-slider', 'value'),
          Input('water-type-dropdown', 'value'),
          Input('contamination-type-dropdown', 'value')]
     )
-    def update_contamination_geographic(countries, years, water_types, contamination_types):
+    def update_high_risk_countries_d3_data_normalized(countries, years, water_types, contamination_types):
         try:
             filtered_df = filter_water_data(df, countries, years, water_types, contamination_types)
             
-            # Filter for contamination data only
+            # Get contamination data only
             contamination_data = filtered_df[
-                filtered_df['measure_category'].str.contains('exceed recommended drinking water limits', na=False) |
-                filtered_df['measure_category'].str.contains('pesticides are present', na=False)
+                filtered_df['measure_category'].str.contains('exceed recommended drinking water limits', case=False, na=False) |
+                filtered_df['measure_category'].str.contains('pesticides are present', case=False, na=False)
             ]
             
             if contamination_data.empty:
-                fig = go.Figure()
-                fig.add_annotation(
-                    text="No contamination data available for selected filters",
-                    xref="paper", yref="paper",
-                    x=0.5, y=0.5, xanchor='center', yanchor='middle',
-                    showarrow=False, font=dict(size=16, color=TEXT_COLOR)
-                )
-                fig.update_layout(
-                    title=dict(
-                        text='Geographic Water Contamination Analysis',
-                        x=0.5, xanchor='center',
-                        font=dict(size=18, color=TEXT_COLOR)
-                    ),
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    font=dict(color=TEXT_COLOR),
-                    height=600
-                )
-                return fig
+                return []
             
-            # Calculate average contamination by country
-            country_contamination = contamination_data.groupby('country')['obs_value'].mean().reset_index()
-            country_contamination.columns = ['country', 'avg_contamination']
-            country_contamination = country_contamination.sort_values('avg_contamination', ascending=False)
+            # Calculate country-level statistics
+            country_stats = contamination_data.groupby('country').agg({
+                'obs_value': ['mean', 'count', 'max'],
+                'measure_category': lambda x: x.value_counts().index[0] if len(x) > 0 else 'Unknown'
+            }).reset_index()
             
-            # Create single bar chart showing top countries
-            top_countries = country_contamination.head(20)  # Show top 20
+            country_stats.columns = ['country', 'contamination_rate', 'monitoring_sites', 'max_contamination', 'main_pollutant']
             
-            fig = go.Figure()
-            
-            fig.add_trace(
-                go.Bar(
-                    y=top_countries['country'][::-1],  # Reverse for better readability
-                    x=top_countries['avg_contamination'][::-1],
-                    orientation='h',
-                    marker=dict(
-                        color=top_countries['avg_contamination'][::-1],
-                        colorscale='Reds',
-                        colorbar=dict(title="Contamination Rate (%)")
-                    ),
-                    hovertemplate='<b>%{y}</b><br>Contamination: %{x:.1f}%<extra></extra>'
-                )
+            # Apply logarithmic normalization
+            normalized_stats = normalize_by_agricultural_land(
+                country_stats, df, 'contamination_rate'
             )
             
-            # Update layout
-            fig.update_layout(
-                title=dict(
-                    text='Geographic Water Contamination Analysis',
-                    x=0.5, xanchor='center',
-                    font=dict(size=18, color=TEXT_COLOR)
-                ),
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                font=dict(color=TEXT_COLOR),
-                height=600,
-                showlegend=False,
-                xaxis_title="Average Contamination Rate (%)",
-                yaxis_title="Countries",
-                margin=dict(l=150, r=50, t=80, b=50)
-            )
+            # Filter for countries with agricultural land data and meaningful contamination
+            high_risk_countries = normalized_stats[
+                (normalized_stats['contamination_rate_log_normalized'] != normalized_stats['contamination_rate']) &
+                (normalized_stats['contamination_rate_log_normalized'] > 0.1)  # Adjusted threshold for log values
+            ].copy()
             
-            return fig
+            # Clean up pollutant names
+            def clean_pollutant_name(measure_category):
+                if pd.isna(measure_category):
+                    return 'Unknown'
+                if 'nitrate' in str(measure_category).lower():
+                    return 'Nitrate'
+                elif 'phosphorus' in str(measure_category).lower():
+                    return 'Phosphorus'
+                elif 'pesticide' in str(measure_category).lower():
+                    return 'Pesticides'
+                else:
+                    return 'Mixed'
+            
+            high_risk_countries['main_pollutant'] = high_risk_countries['main_pollutant'].apply(clean_pollutant_name)
+            
+            # Convert to list of dictionaries for D3
+            d3_data = []
+            for _, row in high_risk_countries.iterrows():
+                d3_data.append({
+                    'country': str(row['country']),
+                    'contamination_rate': float(row['contamination_rate']),  # Raw for display
+                    'contamination_rate_normalized': float(row['contamination_rate_log_normalized']),  # Log normalized for sorting
+                    'monitoring_sites': int(row['monitoring_sites']),
+                    'max_contamination': float(row['max_contamination']),
+                    'main_pollutant': str(row['main_pollutant'])
+                })
+            
+            # Sort by normalized contamination rate
+            d3_data = sorted(d3_data, key=lambda x: x['contamination_rate_normalized'], reverse=True)
+            
+            return d3_data
             
         except Exception as e:
-            fig = go.Figure()
-            fig.add_annotation(
-                text="Error loading geographic data",
-                xref="paper", yref="paper",
-                x=0.5, y=0.5, xanchor='center', yanchor='middle',
-                showarrow=False, font=dict(size=16, color=TEXT_COLOR)
-            )
-            fig.update_layout(
-                title=dict(
-                    text='Geographic Water Contamination Analysis',
-                    x=0.5, xanchor='center',
-                    font=dict(size=18, color=TEXT_COLOR)
-                ),
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                font=dict(color=TEXT_COLOR),
-                height=600
-            )
-            return fig
+            return []
+
+    # Clean D3 visualization callback - removed all console.log statements
+    app.clientside_callback(
+        f"""
+        function(data) {{
+            // Function to load D3 dynamically if not available
+            function loadD3() {{
+                return new Promise((resolve, reject) => {{
+                    if (typeof d3 !== 'undefined') {{
+                        resolve();
+                        return;
+                    }}
+                    
+                    const script = document.createElement('script');
+                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js';
+                    script.onload = () => resolve();
+                    script.onerror = () => reject(new Error('Failed to load D3'));
+                    document.head.appendChild(script);
+                }});
+            }}
+            
+            // Function to create the visualization
+            function createVisualization(data) {{
+                const container = d3.select('#d3-high-risk-countries');
+                if (container.empty()) {{
+                    return;
+                }}
+                
+                // Clear existing content
+                container.selectAll('*').remove();
+                
+                if (!data || data.length === 0) {{
+                    container.append('div')
+                        .style('display', 'flex')
+                        .style('justify-content', 'center')
+                        .style('align-items', 'center')
+                        .style('height', '100%')
+                        .style('color', '{TEXT_COLOR}')
+                        .style('font-size', '16px')
+                        .style('font-family', 'Inter, sans-serif')
+                        .text('No contamination data available for current filters');
+                    return;
+                }}
+                
+                // Set up dimensions
+                const margin = {{top: 50, right: 70, bottom: 120, left: 90}};
+                const containerRect = container.node().getBoundingClientRect();
+                const width = Math.max(600, containerRect.width - margin.left - margin.right);
+                const height = 350;
+                
+                // Create SVG
+                const svg = container.append('svg')
+                    .attr('width', width + margin.left + margin.right)
+                    .attr('height', height + margin.top + margin.bottom);
+                
+                const g = svg.append('g')
+                    .attr('transform', `translate(${{margin.left}},${{margin.top}})`);
+                
+                // Sort and limit data
+                const sortedData = data.sort((a, b) => b.contamination_rate - a.contamination_rate).slice(0, 20);
+                
+                // Set up scales
+                const xScale = d3.scaleBand()
+                    .domain(sortedData.map(d => d.country))
+                    .range([0, width])
+                    .padding(0.15);
+                
+                const yScale = d3.scaleLinear()
+                    .domain([0, d3.max(sortedData, d => d.contamination_rate) * 1.1])
+                    .range([height, 0]);
+                
+                // Color function
+                const getColor = (rate) => {{
+                    if (rate >= 50) return '#f94449';      // Severe - Red
+                    if (rate >= 30) return '#fdac68';      // High - Orange  
+                    if (rate >= 15) return '#fae588';      // Moderate - Yellow
+                    return '#b9ffaf';                      // Low - Green
+                }};
+                
+                // Remove any existing tooltips
+                d3.selectAll('.d3-water-tooltip').remove();
+                
+                // Create tooltip
+                const tooltip = d3.select('body')
+                    .append('div')
+                    .attr('class', 'd3-water-tooltip')
+                    .style('position', 'absolute')
+                    .style('visibility', 'hidden')
+                    .style('background-color', 'rgba(0, 0, 0, 0.9)')
+                    .style('color', 'white')
+                    .style('padding', '12px')
+                    .style('border-radius', '6px')
+                    .style('font-size', '13px')
+                    .style('font-family', 'Inter, sans-serif')
+                    .style('box-shadow', '0 4px 8px rgba(0, 0, 0, 0.3)')
+                    .style('z-index', '1000')
+                    .style('pointer-events', 'none')
+                    .style('max-width', '200px');
+                
+                // Create bars
+                const bars = g.selectAll('.bar')
+                    .data(sortedData)
+                    .enter()
+                    .append('rect')
+                    .attr('class', 'bar')
+                    .attr('x', d => xScale(d.country))
+                    .attr('width', xScale.bandwidth())
+                    .attr('y', height)
+                    .attr('height', 0)
+                    .attr('fill', d => getColor(d.contamination_rate))
+                    .attr('stroke', 'rgba(255,255,255,0.2)')
+                    .attr('stroke-width', 1)
+                    .style('cursor', 'pointer');
+                
+                // Animate bars
+                bars.transition()
+                    .duration(1000)
+                    .delay((d, i) => i * 30)
+                    .attr('y', d => yScale(d.contamination_rate))
+                    .attr('height', d => height - yScale(d.contamination_rate));
+                
+                // Add value labels
+                const labels = g.selectAll('.label')
+                    .data(sortedData)
+                    .enter()
+                    .append('text')
+                    .attr('class', 'label')
+                    .attr('x', d => xScale(d.country) + xScale.bandwidth() / 2)
+                    .attr('y', d => yScale(d.contamination_rate) - 8)
+                    .attr('text-anchor', 'middle')
+                    .style('fill', '{TEXT_COLOR}')
+                    .style('font-size', '11px')
+                    .style('font-weight', 'bold')
+                    .style('font-family', 'Inter, sans-serif')
+                    .style('opacity', 0)
+                    .text(d => d.contamination_rate.toFixed(1) + '%');
+                
+                labels.transition()
+                    .duration(1000)
+                    .delay((d, i) => i * 30 + 500)
+                    .style('opacity', 1);
+                
+                // Add interactivity
+                bars.on('mouseover', function(event, d) {{
+                    d3.select(this)
+                        .transition().duration(150)
+                        .attr('opacity', 0.8)
+                        .attr('stroke-width', 2)
+                        .attr('stroke', 'white');
+                    
+                    const riskLevel = d.contamination_rate >= 50 ? 'Severe' :
+                                    d.contamination_rate >= 30 ? 'High' :
+                                    d.contamination_rate >= 15 ? 'Moderate' : 'Low';
+                    
+                    tooltip.html(`
+                        <div style="font-weight: bold; margin-bottom: 5px;">${{d.country}}</div>
+                        <div style="color: ${{getColor(d.contamination_rate)}}; margin-bottom: 3px;">● ${{riskLevel}} Risk</div>
+                        <div><strong>${{d.contamination_rate.toFixed(1)}}%</strong> contamination rate</div>
+                        <div>${{d.monitoring_sites}} monitoring sites</div>
+                        <div>Main pollutant: ${{d.main_pollutant}}</div>
+                    `)
+                    .style('visibility', 'visible');
+                }})
+                .on('mousemove', function(event) {{
+                    tooltip
+                        .style('top', (event.pageY - 10) + 'px')
+                        .style('left', (event.pageX + 10) + 'px');
+                }})
+                .on('mouseout', function() {{
+                    d3.select(this)
+                        .transition().duration(150)
+                        .attr('opacity', 1)
+                        .attr('stroke-width', 1)
+                        .attr('stroke', 'rgba(255,255,255,0.2)');
+                    
+                    tooltip.style('visibility', 'hidden');
+                }});
+                
+                // Add axes
+                const xAxis = g.append('g')
+                    .attr('transform', `translate(0,${{height}})`)
+                    .call(d3.axisBottom(xScale));
+                
+                xAxis.selectAll('text')
+                    .style('text-anchor', 'end')
+                    .style('fill', '{TEXT_COLOR}')
+                    .style('font-family', 'Inter, sans-serif')
+                    .style('font-size', '10px')
+                    .attr('dx', '-.8em')
+                    .attr('dy', '.15em')
+                    .attr('transform', 'rotate(-45)');
+                
+                const yAxis = g.append('g')
+                    .call(d3.axisLeft(yScale).tickFormat(d => d + '%'));
+                
+                yAxis.selectAll('text')
+                    .style('fill', '{TEXT_COLOR}')
+                    .style('font-family', 'Inter, sans-serif')
+                    .style('font-size', '11px');
+                
+                // Style axes
+                g.selectAll('.domain, .tick line')
+                    .style('stroke', '{TEXT_COLOR}')
+                    .style('opacity', 0.3);
+                
+                // Add axis labels
+                g.append('text')
+                    .attr('transform', 'rotate(-90)')
+                    .attr('y', 0 - margin.left + 20)
+                    .attr('x', 0 - (height / 2))
+                    .attr('dy', '1em')
+                    .style('text-anchor', 'middle')
+                    .style('fill', '{TEXT_COLOR}')
+                    .style('font-size', '12px')
+                    .style('font-family', 'Inter, sans-serif')
+                    .text('Contamination Rate (%)');
+                
+                // Add gridlines
+                g.append('g')
+                    .attr('class', 'grid')
+                    .call(d3.axisLeft(yScale)
+                        .tickSize(-width)
+                        .tickFormat('')
+                    )
+                    .style('stroke-dasharray', '2,2')
+                    .style('opacity', 0.1);
+                
+                g.selectAll('.grid line')
+                    .style('stroke', '{TEXT_COLOR}');
+                
+                g.selectAll('.grid path')
+                    .style('stroke-width', 0);
+                
+                // Add summary stats
+                const avgRate = d3.mean(sortedData, d => d.contamination_rate);
+                const severeCount = sortedData.filter(d => d.contamination_rate >= 50).length;
+                const highCount = sortedData.filter(d => d.contamination_rate >= 30 && d.contamination_rate < 50).length;
+                
+                g.append('text')
+                    .attr('x', width)
+                    .attr('y', -15)
+                    .attr('text-anchor', 'end')
+                    .style('fill', '{TEXT_COLOR}')
+                    .style('font-size', '11px')
+                    .style('font-family', 'Inter, sans-serif')
+                    .style('font-weight', 'bold')
+                    .text(`Avg: ${{avgRate.toFixed(1)}}% | Severe: ${{severeCount}} | High: ${{highCount}}`);
+            }}
+            
+            // Main execution - silent operation
+            loadD3()
+                .then(() => createVisualization(data))
+                .catch(() => {{
+                    // Silent error handling
+                    const container = d3.select('#d3-high-risk-countries');
+                    if (!container.empty()) {{
+                        container.selectAll('*').remove();
+                        container.append('div')
+                            .style('display', 'flex')
+                            .style('justify-content', 'center')
+                            .style('align-items', 'center')
+                            .style('height', '100%')
+                            .style('color', '{TEXT_COLOR}')
+                            .style('font-size', '16px')
+                            .text('Visualization temporarily unavailable');
+                    }}
+                }});
+            
+            return data ? data.length.toString() : '0';
+        }}
+        """,
+        Output('d3-update-trigger', 'children'),
+        Input('high-risk-countries-data', 'data')
+    )
+
     
     # Visualization 2: Water Usage vs Contamination
     @app.callback(
@@ -589,13 +837,13 @@ Countries Monitored: {int(worst_stats['countries'])}"""
     
     # Visualization 3: Water Quality vs Usage Efficiency Analysis
     @app.callback(
-        Output('water-quality-usage-analysis', 'figure'),
-        [Input('country-dropdown', 'value'),
-         Input('year-slider', 'value'),
-         Input('water-type-dropdown', 'value'),
-         Input('contamination-type-dropdown', 'value')]
+    Output('water-quality-usage-analysis', 'figure'),
+    [Input('country-dropdown', 'value'),
+     Input('year-slider', 'value'),
+     Input('water-type-dropdown', 'value'),
+     Input('contamination-type-dropdown', 'value')]
     )
-    def update_quality_usage_analysis(countries, years, water_types, contamination_types):
+    def update_quality_usage_analysis_clean(countries, years, water_types, contamination_types):
         try:
             filtered_df = filter_water_data(df, countries, years, water_types, contamination_types)
             
@@ -609,38 +857,37 @@ Countries Monitored: {int(worst_stats['countries'])}"""
                 )
                 fig.update_layout(
                     title=dict(
-                        text='Water Quality vs Usage Efficiency Analysis',
+                        text='Water Quality vs Usage Analysis',
                         x=0.5, xanchor='center',
                         font=dict(size=18, color=TEXT_COLOR)
                     ),
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor=VIZ_COLOR,
+                    paper_bgcolor=VIZ_COLOR,
                     font=dict(color=TEXT_COLOR),
                     height=550
                 )
                 return fig
             
-            # Create subplots: Side-by-side bar chart + pie chart
+            # Create subplots with more space
             fig = make_subplots(
                 rows=1, cols=2,
-                subplot_titles=('Top 10 Countries: Water Usage vs Contamination', 'Water Source Distribution'),
-                specs=[[{"type": "bar"}, {"type": "pie"}]],
-                column_widths=[0.6, 0.4],  # More space for bar chart
-                horizontal_spacing=0.15 # Good spacing between chart
+                subplot_titles=('Water Impact Intensity by Country', 'Water Source Distribution'),
+                specs=[[{"secondary_y": True}, {"type": "pie"}]],
+                column_widths=[0.7, 0.3],  # Give more space to the bar chart
+                horizontal_spacing=0.1
             )
             
-            # Get contamination data
+            # Get contamination and abstraction data
             contamination_data = filtered_df[
                 filtered_df['measure_category'].str.contains('exceed recommended drinking water limits', na=False) |
                 filtered_df['measure_category'].str.contains('pesticides are present', na=False)
             ]
             
-            # Get water abstraction data  
             abstraction_data = filtered_df[
                 filtered_df['measure_category'] == 'Agriculture freshwater abstraction'
             ]
             
-            # Top panel: Combined bar chart showing usage and contamination
+            # Normalized analysis
             if not contamination_data.empty and not abstraction_data.empty:
                 # Calculate country averages
                 country_contamination = contamination_data.groupby('country')['obs_value'].mean().reset_index()
@@ -649,61 +896,83 @@ Countries Monitored: {int(worst_stats['countries'])}"""
                 country_abstraction = abstraction_data.groupby('country')['obs_value'].mean().reset_index()
                 country_abstraction.columns = ['country', 'water_usage']
                 
+                # Apply logarithmic normalization
+                normalized_contamination = normalize_by_agricultural_land(
+                    country_contamination, df, 'contamination_rate'
+                )
+                normalized_abstraction = normalize_by_agricultural_land(
+                    country_abstraction, df, 'water_usage'
+                )
+                
                 # Merge data
-                correlation_data = country_contamination.merge(country_abstraction, on='country', how='inner')
+                correlation_data = normalized_contamination.merge(
+                    normalized_abstraction, on='country', how='inner'
+                )
+                
+                # Filter valid data
+                correlation_data = correlation_data[
+                    (correlation_data['contamination_rate_log_normalized'] != correlation_data['contamination_rate']) &
+                    (correlation_data['water_usage_log_normalized'] != correlation_data['water_usage'])
+                ]
                 
                 if not correlation_data.empty:
-                    # Sort by contamination rate and take top 10
-                    top_countries = correlation_data.nlargest(10, 'contamination_rate')
+                    # Take top 8 countries for better readability
+                    top_countries = correlation_data.nlargest(8, 'contamination_rate_log_normalized')
                     
-                    # Normalize water usage for better visualization (scale to 0-100)
-                    max_usage = top_countries['water_usage'].max()
-                    top_countries['usage_normalized'] = (top_countries['water_usage'] / max_usage) * 100
-                    
-                    # Add contamination rate bars
+                    # CONTAMINATION BARS (Primary Y-axis)
                     fig.add_trace(
                         go.Bar(
                             x=top_countries['country'],
-                            y=top_countries['contamination_rate'],
-                            name='Contamination Rate (%)',
-                            marker_color='#c44d4d',
-                            opacity=0.8,
-                            hovertemplate='<b>%{x}</b><br>Contamination: %{y:.1f}%<extra></extra>',
-                            showlegend=True
+                            y=top_countries['contamination_rate_log_normalized'],
+                            name='Contamination',
+                            marker=dict(
+                                color='#c44d4d',
+                                opacity=0.8
+                            ),
+                            hovertemplate='<b>%{x}</b><br>Contamination: %{y:.1f}<br>Raw Rate: %{customdata:.1f}%<extra></extra>',
+                            customdata=top_countries['contamination_rate'],
+                            offsetgroup=1,
+                            width=0.35
                         ),
-                        row=1, col=1
+                        row=1, col=1,
+                        secondary_y=False
                     )
                     
-                    # Add normalized water usage bars
+                    # WATER USAGE BARS (Secondary Y-axis) 
                     fig.add_trace(
                         go.Bar(
                             x=top_countries['country'],
-                            y=top_countries['usage_normalized'],
-                            name='Water Usage (Normalized)',
-                            marker_color='#a2d2ff',
-                            opacity=0.6,
-                            hovertemplate='<b>%{x}</b><br>Water Usage: %{customdata:,.0f} cubic metres<extra></extra>',
+                            y=top_countries['water_usage_log_normalized'],
+                            name='Water Usage',
+                            marker=dict(
+                                color='#a2d2ff',
+                                opacity=0.8
+                            ),
+                            hovertemplate='<b>%{x}</b><br>Usage: %{y:.1f}<br>Raw: %{customdata:,.0f} m³<extra></extra>',
                             customdata=top_countries['water_usage'],
-                            showlegend=True
+                            offsetgroup=2,
+                            width=0.35
                         ),
-                        row=1, col=1
+                        row=1, col=1,
+                        secondary_y=True
                     )
+                    
                 else:
                     fig.add_annotation(
-                        text="No correlation data available",
+                        text="No countries with complete data",
                         xref="paper", yref="paper",
-                        x=0.3, y=0.5, xanchor='center', yanchor='middle',
+                        x=0.35, y=0.5, xanchor='center', yanchor='middle',
                         showarrow=False, font=dict(size=14, color=TEXT_COLOR)
                     )
             else:
                 fig.add_annotation(
                     text="Insufficient data for analysis",
                     xref="paper", yref="paper",
-                    x=0.3, y=0.5, xanchor='center', yanchor='middle',
+                    x=0.35, y=0.5, xanchor='center', yanchor='middle',
                     showarrow=False, font=dict(size=14, color=TEXT_COLOR)
                 )
             
-            # Right panel: Water source distribution pie chart
+            # SIMPLIFIED PIE CHART
             water_source_data = abstraction_data[
                 abstraction_data['water_type'].isin(['Surface water', 'Ground water'])
             ]
@@ -711,92 +980,101 @@ Countries Monitored: {int(worst_stats['countries'])}"""
             if not water_source_data.empty:
                 source_totals = water_source_data.groupby('water_type')['obs_value'].sum().reset_index()
                 
-                if len(source_totals) > 0:
-                    fig.add_trace(
-                        go.Pie(
-                            labels=source_totals['water_type'],
-                            values=source_totals['obs_value'],
-                            hole=0.4,
-                            marker=dict(colors=['#c6e6e3', '#f3a0ad']),
-                            textinfo='label+percent',
-                            hovertemplate='<b>%{label}</b><br>Volume: %{value:,.0f} cubic metres<br>Percentage: %{percent}<extra></extra>',
-                            showlegend=False  # Hide pie legend to avoid overlap with bar legend
-                        ),
-                        row=1, col=2
-                    )
-                    
-                    fig.update_traces(
-                        selector=dict(type="pie"),
-                        domain=dict(x=[0.6, 0.95], y=[0.03, 0.98])  # Position pie chart on right side
-                    )
-                    
-                else:
-                    fig.add_annotation(
-                        text="No water source data",
-                        xref="paper", yref="paper",
-                        x=0.8, y=0.5, xanchor='center', yanchor='middle',
-                        showarrow=False, font=dict(size=14, color=TEXT_COLOR)
-                    )
-            else:
-                fig.add_annotation(
-                    text="No water source breakdown available",
-                    xref="paper", yref="paper",
-                    x=0.8, y=0.5, xanchor='center', yanchor='middle',
-                    showarrow=False, font=dict(size=14, color=TEXT_COLOR)
+                fig.add_trace(
+                    go.Pie(
+                        labels=source_totals['water_type'],
+                        values=source_totals['obs_value'],
+                        hole=0.3,
+                        marker=dict(colors=['#96CEB4', '#FECA57']),
+                        textinfo='label+percent',
+                        textfont=dict(size=11),
+                        hovertemplate='<b>%{label}</b><br>%{value:,.0f} m³<extra></extra>',
+                        showlegend=False
+                    ),
+                    row=1, col=2
                 )
             
-            # Update layout
+            # CLEAN LAYOUT
             fig.update_layout(
                 title=dict(
-                    text='Water Quality vs Usage Efficiency Analysis',
+                    text='Agricultural Water Impact: Contamination vs Usage Intensity',
                     x=0.5, xanchor='center',
-                    font=dict(size=18, color=TEXT_COLOR)
+                    font=dict(size=16, color=TEXT_COLOR)
                 ),
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor=VIZ_COLOR,
+                paper_bgcolor=VIZ_COLOR,
                 font=dict(color=TEXT_COLOR),
-                height=500,  # Standard height for side-by-side
+                height=480,  # Reduced height
+                showlegend=True,
                 legend=dict(
                     orientation="h",
                     yanchor="bottom",
-                    y=-0.5,  # Place legend below the charts
+                    y=-0.23,
                     xanchor="center",
-                    x=0.25  # Position over the bar chart area
+                    x=0.30
                 ),
-                margin=dict(t=120, b=80, l=50, r=50), # Extra bottom margin for legend
-                annotations=[
-                    dict(text="Top 10 Countries: Water Usage vs Contamination", 
-                         xref="paper", yref="paper", x=0.25, y=1, xanchor="center", 
-                         font=dict(size=16), showarrow=False),
-                    dict(text="Water Source Distribution", 
-                         xref="paper", yref="paper", x=0.78, y=1, xanchor="center", 
-                         font=dict(size=16), showarrow=False)  # Lower the pie chart title more
-                ]
+                margin=dict(t=80, b=100, l=60, r=40),  # Better margins
+                barmode='group',
+                bargap=0.2,
+                bargroupgap=0.1
             )
             
-            # Update axes for bar chart
-            fig.update_xaxes(title_text="Countries", tickangle=45, row=1, col=1)
-            fig.update_yaxes(title_text="Rate / Normalized Usage", row=1, col=1)
+            # SIMPLIFIED AXES
+            fig.update_xaxes(
+                title_text="",  # Remove x-axis title to save space
+                tickangle=45,
+                tickfont=dict(size=10),
+                row=1, col=1
+            )
+            
+            # Primary Y-axis (Contamination) - LEFT
+            fig.update_yaxes(
+                title_text="Contamination Score",
+                title_font=dict(color='#c44d4d', size=12),
+                tickfont=dict(color='#c44d4d', size=10),
+                showgrid=True,
+                gridcolor='rgba(255, 107, 107, 0.2)',
+                row=1, col=1,
+                secondary_y=False
+            )
+            
+            # Secondary Y-axis (Water Usage) - RIGHT
+            fig.update_yaxes(
+                title_text="Usage Score",
+                title_font=dict(color='#a2d2ff', size=12),
+                tickfont=dict(color='#a2d2ff', size=10),
+                showgrid=False,  # Don't overlap grids
+                row=1, col=1,
+                secondary_y=True
+            )
+            
+            # SINGLE CLEAN EXPLANATION
+            fig.add_annotation(
+                text="Intensity scores normalize raw values by agricultural land area. Higher = more intensive impact per hectare.",
+                xref="paper", yref="paper",
+                x=0.3, y=-0.23,
+                xanchor='center', yanchor='top',
+                showarrow=False,
+                font=dict(size=9, color=TEXT_COLOR),
+                bgcolor="rgba(255,255,255,0.05)",
+                bordercolor='rgba(255,255,255,0.2)',
+                borderwidth=1
+            )
             
             return fig
             
         except Exception as e:
             fig = go.Figure()
             fig.add_annotation(
-                text=f"Error loading water quality analysis: {str(e)}",
+                text="Error loading data",
                 xref="paper", yref="paper",
-                x=0.5, y=0.5, xanchor='center', yanchor='middle',
-                showarrow=False, font=dict(size=16, color=TEXT_COLOR)
+                x=0.5, y=0.5, showarrow=False,
+                font=dict(size=16, color=TEXT_COLOR)
             )
             fig.update_layout(
-                title=dict(
-                    text='Water Quality vs Usage Efficiency Analysis',
-                    x=0.5, xanchor='center',
-                    font=dict(size=18, color=TEXT_COLOR)
-                ),
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor=VIZ_COLOR,
+                paper_bgcolor=VIZ_COLOR,
                 font=dict(color=TEXT_COLOR),
-                height=600
+                height=480
             )
             return fig

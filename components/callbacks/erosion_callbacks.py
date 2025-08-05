@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from ..helpers.get_continent import get_continent
-from ..helpers.tools import apply_filters, style_title
+from ..helpers.tools import apply_filters, style_title, normalize_by_agricultural_land
 from ..styles import VIZ_COLOR, TEXT_COLOR, FONT_FAMILY
 
 def get_erosion_callbacks(df, app):
@@ -397,7 +397,7 @@ Summary: {severe_count} severe, {high_only} high-only"""
         
         return fig
 
-    # Visualization 2: Geographic Risk Distribution Matrix
+    #Visualization 2: Geographic Risk Distribution Matrix (NORMALIZED)
     @app.callback(
         Output('erosion-geographic-matrix', 'figure'),
         Input('country-dropdown', 'value'),
@@ -405,7 +405,7 @@ Summary: {severe_count} severe, {high_only} high-only"""
         Input('erosion-risk-dropdown', 'value'),
         Input('erosion-type-dropdown', 'value')
     )
-    def update_erosion_geographic_matrix(countries, years, erosion_levels, erosion_types):
+    def update_erosion_geographic_matrix_normalized(countries, years, erosion_levels, erosion_types):
         erosion_measures = df[df['measure_category'].str.contains('erosion', case=False, na=False)]
         d = apply_filters(erosion_measures, selected_countries=countries, year_range=years, 
                          selected_erosion_levels=erosion_levels)
@@ -433,28 +433,44 @@ Summary: {severe_count} severe, {high_only} high-only"""
         
         geo_data.columns = ['country', 'measure_category', 'continent', 'avg_intensity', 'observation_count', 'max_intensity']
         
+        # APPLY NORMALIZATION BY AGRICULTURAL LAND
+        normalized_geo = normalize_by_agricultural_land(geo_data, df, 'avg_intensity')
+        
+        # Filter only countries with valid agricultural land data (where normalization occurred)
+        valid_geo_data = normalized_geo[
+            normalized_geo['avg_intensity_log_normalized'] != normalized_geo['avg_intensity']
+        ].copy()
+        
+        if valid_geo_data.empty:
+            fig = go.Figure()
+            fig.add_annotation(text="No countries with agricultural land data available", 
+                             xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False)
+            fig.update_layout(title=style_title('No Agricultural Land Data Available'), 
+                            paper_bgcolor=VIZ_COLOR, plot_bgcolor=VIZ_COLOR)
+            return fig
+        
         # Create subplot with 2 visualizations
         fig = make_subplots(
             rows=1, cols=2,
-            subplot_titles=('Top 10 Countries: Erosion Intensity Heatmap', 'Continental Risk Analysis'),
+            subplot_titles=('Top 10 Countries: Normalized Erosion Intensity', 'Continental Risk Analysis (Normalized)'),
             specs=[[{"type": "heatmap"}, {"type": "scatter"}]],
             horizontal_spacing=0.20,
-            column_widths=[0.48, 0.48]
+            column_widths=[0.50, 0.50]
         )
         
-        # Left panel: Clean heatmap with top 10 countries
-        top_countries = geo_data.groupby('country')['observation_count'].sum().nlargest(10).index
-        heatmap_data = geo_data[geo_data['country'].isin(top_countries)]
+        # Left panel: Clean heatmap with top 10 normalized countries
+        top_countries = valid_geo_data.groupby('country')['avg_intensity_log_normalized'].mean().nlargest(10).index
+        heatmap_data = valid_geo_data[valid_geo_data['country'].isin(top_countries)]
         
-        # Pivot for heatmap
+        # Pivot for heatmap using normalized values
         heatmap_matrix = heatmap_data.pivot_table(
             index='country', 
             columns='measure_category', 
-            values='avg_intensity', 
+            values='avg_intensity_log_normalized', 
             fill_value=0
         )
         
-        # Sort countries by total intensity for better readability
+        # Sort countries by total normalized intensity
         heatmap_matrix['total'] = heatmap_matrix.sum(axis=1)
         heatmap_matrix = heatmap_matrix.sort_values('total', ascending=False).drop('total', axis=1)
         
@@ -471,22 +487,20 @@ Summary: {severe_count} severe, {high_only} high-only"""
                     y=0.5,
                     len=0.85
                 ),
-                hovertemplate='Country: %{y}<br>Type: %{x}<br>Intensity: %{z:.1f}<extra></extra>'
+                hovertemplate='Country: %{y}<br>Type: %{x}<br>Norm. Intensity: %{z:.2f}<extra></extra>'
             ),
             row=1, col=1
         )
         
-        # Right panel: Continental bubble chart
-        continent_summary = geo_data.groupby('continent').agg({
-            'avg_intensity': 'mean',
+        # Right panel: Continental bubble chart with normalized data
+        continent_summary = valid_geo_data.groupby('continent').agg({
+            'avg_intensity_log_normalized': 'mean',
             'observation_count': 'sum',
             'country': 'nunique'
         }).reset_index()
         
-        # Calculate risk score for bubble size
-        continent_summary['risk_score'] = (continent_summary['avg_intensity'] * 
-                                          continent_summary['observation_count'] / 
-                                          continent_summary['observation_count'].max() * 100)
+        # Calculate risk score for bubble size using normalized values
+        continent_summary['risk_score'] = (continent_summary['avg_intensity_log_normalized'] * 100)
         
         continent_colors = {
             'Asia': '#FF6B6B', 'Europe': '#4ECDC4', 'Africa': '#45B7D1',
@@ -496,7 +510,7 @@ Summary: {severe_count} severe, {high_only} high-only"""
         fig.add_trace(
             go.Scatter(
                 x=continent_summary['observation_count'],
-                y=continent_summary['avg_intensity'],
+                y=continent_summary['avg_intensity_log_normalized'],
                 mode='markers+text',
                 marker=dict(
                     size=continent_summary['risk_score'],
@@ -510,7 +524,7 @@ Summary: {severe_count} severe, {high_only} high-only"""
                 text=continent_summary['continent'],
                 textposition='middle center',
                 textfont=dict(size=12, color='white', family=FONT_FAMILY),
-                hovertemplate='<b>%{text}</b><br>Observations: %{x:,.0f}<br>Avg Intensity: %{y:.1f}<br>Countries: %{customdata}<extra></extra>',
+                hovertemplate='<b>%{text}</b><br>Observations: %{x:,.0f}<br>Norm. Intensity: %{y:.2f}<br>Countries: %{customdata}<extra></extra>',
                 customdata=continent_summary['country'],
                 showlegend=False
             ),
@@ -520,16 +534,16 @@ Summary: {severe_count} severe, {high_only} high-only"""
         # Update layout
         fig.update_layout(
             title=dict(
-                text='Geographic Erosion Risk Distribution Analysis',
+                text='Normalized Geographic Erosion Risk Distribution (per Agricultural Hectare)',
                 x=0.5,  # Center the title
                 xanchor='center',
-                font=dict(size=18, color=TEXT_COLOR, family=FONT_FAMILY)
+                font=dict(size=16, color=TEXT_COLOR, family=FONT_FAMILY)
             ),
             paper_bgcolor=VIZ_COLOR,
             plot_bgcolor=VIZ_COLOR,
             font=dict(color=TEXT_COLOR, family=FONT_FAMILY),
-            margin=dict(l=80, r=80, t=100, b=60),
-            height=500,
+            margin=dict(l=80, r=80, t=100, b=70),
+            height=550,
             showlegend=False
         )
         
@@ -545,8 +559,7 @@ Summary: {severe_count} severe, {high_only} high-only"""
             row=1, col=2
         )
         fig.update_yaxes(
-            title_text="Average Intensity",
-            range=[5, 30],
+            title_text="Normalized Intensity",
             row=1, col=2
         )
         
@@ -554,7 +567,21 @@ Summary: {severe_count} severe, {high_only} high-only"""
         fig.update_xaxes(showgrid=True, gridcolor='rgba(255,255,255,0.1)')
         fig.update_yaxes(showgrid=True, gridcolor='rgba(255,255,255,0.1)')
         
+        # Add normalization explanation
+        fig.add_annotation(
+            text="Intensity normalized by agricultural land area (log scale). Higher values = more erosion per hectare.",
+            xref="paper", yref="paper",
+            x=0.5, y=-0.15,
+            xanchor='center', yanchor='top',
+            showarrow=False,
+            font=dict(size=10, color=TEXT_COLOR),
+            bgcolor="rgba(255,255,255,0.05)",
+            bordercolor='rgba(255,255,255,0.2)',
+            borderwidth=1
+        )
+        
         return fig
+
 
     # Visualization 3: Risk Pattern Analysis
     @app.callback(
