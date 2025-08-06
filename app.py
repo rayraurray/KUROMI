@@ -7,5 +7,8 @@ app.title = "AEID"
 app.layout = layout
 register_callbacks(app)
 
+# Expose the server for Gunicorn
+server = app.server
+
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
