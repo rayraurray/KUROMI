@@ -77,22 +77,23 @@ erosion = [
                 html.Div(
                     children=html.P([
                         html.Strong("Normalized Geographic Risk Distribution Analysis:"), html.Br(),
-                        "This enhanced visualization now shows erosion intensity per agricultural hectare using logarithmic normalization, ",
-                        "revealing the true impact density that was previously hidden by country size differences. Countries with small agricultural areas but high erosion rates now properly rank as high-intensity risks, ",
-                        "while large countries with moderate total erosion may show lower per-hectare intensity. This normalization exposes which agricultural systems are most vulnerable per unit of farmland. ",
+                        "The agricultural land normalization reveals a striking reversal in erosion risk priorities that challenges conventional assumptions about which countries face the most severe soil degradation per hectare of farmland. ",
+                        "Malta emerges as having the highest normalized erosion intensity, followed by Slovenia and Denmark, indicating that smaller European countries with intensive agricultural practices face disproportionately severe erosion pressure relative to their limited agricultural land base. ",
+                        "This pattern suggests that high-density farming systems in constrained agricultural areas create concentrated soil vulnerability that was previously masked when looking at absolute erosion totals.",
                         html.Br(), html.Br(),
-                        "The normalized heatmap reveals three critical patterns that should inform targeted intervention strategies. ",
-                        "First, several smaller European countries now emerge as having the highest erosion intensity per agricultural hectare, indicating that intensive farming practices in limited space create concentrated soil degradation. ",
-                        "Second, the continental analysis using normalized data shows that monitoring coverage biases are even more pronounced when accounting for agricultural land area - ",
-                        "regions with limited agricultural monitoring may be experiencing severe per-hectare erosion that remains undetected. ",
+                        "The heatmap exposes a critical water erosion crisis in the smaller agricultural economies - Malta, Slovenia, and Denmark show severe normalized water erosion intensities (dark red coloring), ",
+                        "while larger agricultural nations like Canada and Australia, despite having significant absolute erosion, show more moderate per-hectare intensity. ",
+                        "Notably, wind erosion appears to be a more specialized threat, with Netherlands and Denmark showing the highest normalized wind erosion intensity, ",
+                        "suggesting that specific geographic and agricultural conditions in these densely farmed regions create optimal conditions for wind-driven soil loss.",
                         html.Br(), html.Br(),
-                        "Most strategically important, the normalized bubble chart positioning reveals that some continents combine high per-hectare erosion intensity with limited monitoring data, ",
-                        "creating dangerous blind spots where severe erosion may be occurring at high density without adequate surveillance. ",
-                        "This pattern indicates that international soil conservation funding should prioritize both expanding monitoring capabilities in under-surveyed regions ",
-                        "and implementing intensive conservation measures in high-density erosion areas identified through this normalization approach."
+                        "The continental bubble analysis reveals that Europe, despite having extensive monitoring coverage (100+ observations), shows moderate normalized intensity, ",
+                        "indicating effective erosion management relative to agricultural density, while Asia and Oceania demonstrate higher per-hectare erosion intensity with fewer monitoring points. ",
+                        "This creates a concerning surveillance gap where regions with high agricultural intensity may be experiencing severe per-hectare erosion without adequate monitoring. ",
+                        "For policy makers, this analysis indicates that erosion prevention strategies should prioritize intensive support for small-scale, high-density agricultural systems ",
+                        "rather than focusing solely on countries with the largest absolute erosion totals, as the per-hectare impact reveals where agricultural sustainability is most critically threatened."
                     ]),
                     style={'padding': '15px', 'color': TEXT_COLOR, 'background-color': 'rgba(255,255,255,0.05)', 
-                          'border-radius': '8px', 'margin-top': '10px', 'line-height': '1.5'}
+                        'border-radius': '8px', 'margin-top': '10px', 'line-height': '1.5'}
                 )
             ]),
             

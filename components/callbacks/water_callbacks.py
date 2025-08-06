@@ -6,7 +6,6 @@ from ..styles import VIZ_COLOR, TEXT_COLOR
 from ..helpers.tools import normalize_by_agricultural_land
 
 def filter_water_data(df, countries, years, water_types, contamination_types):
-    """Filter the dataset based on user selections"""
     # Filter for water-related measures
     water_measures = [
         'Share of monitoring sites in agricultural areas that exceed recommended drinking water limits for nitrate',
@@ -1052,7 +1051,7 @@ Countries Monitored: {int(worst_stats['countries'])}"""
             fig.add_annotation(
                 text="Intensity scores normalize raw values by agricultural land area. Higher = more intensive impact per hectare.",
                 xref="paper", yref="paper",
-                x=0.3, y=-0.23,
+                x=0.3, y=-0.25,
                 xanchor='center', yanchor='top',
                 showarrow=False,
                 font=dict(size=9, color=TEXT_COLOR),

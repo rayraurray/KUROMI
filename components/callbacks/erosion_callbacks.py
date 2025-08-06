@@ -452,7 +452,7 @@ Summary: {severe_count} severe, {high_only} high-only"""
         # Create subplot with 2 visualizations
         fig = make_subplots(
             rows=1, cols=2,
-            subplot_titles=('Top 10 Countries: Normalized Erosion Intensity', 'Continental Risk Analysis (Normalized)'),
+            subplot_titles=('Top 10 Countries: Erosion Intensity', 'Continental Risk Analysis'),
             specs=[[{"type": "heatmap"}, {"type": "scatter"}]],
             horizontal_spacing=0.20,
             column_widths=[0.50, 0.50]

@@ -12,7 +12,7 @@ def get_high_risk_countries_d3_viz(df, span=1):
     Shows an interactive bar chart with risk levels and detailed country information
     """
     return html.Div([
-        html.H3("High-Risk Countries Interactive Analysis", 
+        html.H3("Normalized High-Risk Countries Analysis (using D3.js)", 
                 style={
                     'color': TEXT_COLOR, 
                     'textAlign': 'center',
@@ -103,18 +103,20 @@ water = [
             'margin': '40px 0px 0px 0px'
         },
         children=[
+            
+            # Visualization 1: High-Risk Countries D3.js
             html.Div([
                 get_high_risk_countries_d3_viz(df, 1),
                 html.Div(
                     children=html.P([
                         html.Strong("Interactive High-Risk Countries Analysis: "), html.Br(),
-                        "This D3.js visualization provides an interactive bar chart of countries with contamination rates above 30%. ",
-                        "Each bar is color-coded by risk level: red for severe (>50%), orange for high (30-50%), yellow for moderate (15-30%), and green for low (<15%). ",
-                        "Hover over any bar to see detailed information including the specific contamination rate, number of monitoring sites, and the main pollutant type. ",
+                        "This D3.js interactive visualization displays water contamination rates normalized by agricultural land area using logarithmic scaling, revealing the true contamination intensity per hectare of farmland rather than absolute contamination levels. ",
+                        "The normalization exposes Greece as having the most severe contamination intensity (57.5%) among countries with agricultural monitoring data, followed by Luxembourg and Canada showing nearly equivalent high-risk status around 49%. ",
+                        "The color-coded risk classification shows that only Greece reaches the severe risk threshold (>50%, red), while five countries fall into the high-risk category (30-50%, orange), and the remaining countries demonstrate moderate contamination levels (15-30%, yellow) with none qualifying as low risk in this filtered dataset. ",
                         html.Br(), html.Br(),
-                        "The visualization animates when filters change, providing smooth transitions that help track how different countries move in and out of high-risk categories. ",
-                        "Countries are automatically sorted by contamination severity, with summary statistics displayed in the top-right corner showing average contamination rates and counts of severe vs high-risk countries. ",
-                        "This interactive approach allows for deeper exploration of the data compared to static KPI cards, revealing patterns in agricultural water quality that require immediate attention and policy intervention."
+                        "The interactive D3 implementation provides smooth animated transitions when filters change, allowing users to explore how different contamination types, water sources, and time periods affect country rankings in real-time. ",
+                        "Hover interactions reveal detailed monitoring information including the number of surveillance sites and primary pollutant types, with summary statistics showing an average contamination rate of 23.5% across all displayed countries. ",
+                        "This normalized approach fundamentally shifts the focus from countries with large agricultural sectors to those with intensive contamination per unit of farmland, indicating that targeted intervention strategies should prioritize agricultural systems with high contamination density rather than simply addressing countries with the highest absolute contamination volumes."
                     ]),
                     style={'padding': '15px', 'color': TEXT_COLOR, 'background-color': 'rgba(255,255,255,0.05)', 
                         'border-radius': '8px', 'margin-top': '10px', 'line-height': '1.5'}
@@ -147,16 +149,16 @@ water = [
                 html.Div(
                     children=html.P([
                         html.Strong("Water Quality vs Usage Efficiency Analysis:"), html.Br(),
-                        "This visualization highlights a concerning inverse relationship between water contamination rates and usage patterns across the top 10 most contaminated countries. Norway stands out as an anomaly with the highest contamination rate (66%) but remarkably low water usage, ",
-                        "suggesting that contamination issues may stem from intensive agricultural practices rather than volume-based inefficiencies. ",
-                        "In contrast, Greece and Australia demonstrate high water consumption (normalized values of 94 and 100, respectively) with moderate contamination levels, indicating potential for optimization through improved water treatment infrastructure rather than usage reduction.",
+                        "The normalized intensity analysis reveals Luxembourg as having the highest contamination score (~22) despite minimal water usage, indicating extremely concentrated pollution per agricultural hectare that likely stems from intensive farming practices rather than excessive water consumption. ",
+                        "Greece emerges as a critical case study with high contamination intensity (~15) paired with exceptionally high normalized water usage (approaching 2500 on the usage score), suggesting a dual crisis where both contamination density and water consumption efficiency require immediate intervention. ",
+                        "Australia presents an interesting contrast with the highest normalized water usage score but relatively moderate contamination intensity (~5), indicating potential for optimization through improved water treatment and agricultural practices rather than usage reduction.",
                         html.Br(), html.Br(),
-                        "The water source distribution (76.7% surface water vs. 23.3% groundwater) provides critical context for intervention strategies. Countries heavily reliant on surface water face greater contamination vulnerability from agricultural runoff, ",
-                        "while the smaller groundwater fraction likely experiences concentrated pollution impacts. This distribution suggests that stakeholders should prioritize surface water protection measures and consider strategic shifts toward groundwater utilization where geologically feasible, ",
-                        "particularly for countries such as France and Canada, showing moderate contamination despite significant usage. The visualization implies that water quality degradation is not simply a function of usage volume but rather reflects agricultural intensity, water source management, and treatment infrastructure effectiveness."
+                        "The water source distribution reveals a critical infrastructure insight: 76.7% reliance on surface water versus 23.3% groundwater creates systemic vulnerability to agricultural runoff contamination across the monitored countries. ",
+                        "Countries like Denmark, Czechia, and Finland demonstrate similar contamination intensity scores (8-10 range) despite varying water usage patterns, suggesting that contamination issues may be more closely linked to agricultural intensity and source water management than to consumption volume. ",
+                        "This dual-axis analysis indicates that effective water quality improvement strategies must address both contamination intensity per hectare and usage efficiency simultaneously, with particular attention to surface water protection measures given the heavy reliance on this more vulnerable water source across agricultural systems."
                     ]),
                     style={'padding': '15px', 'color': TEXT_COLOR, 'background-color': 'rgba(255,255,255,0.05)', 
-                          'border-radius': '8px', 'margin-top': '10px', 'line-height': '1.5'}
+                        'border-radius': '8px', 'margin-top': '10px', 'line-height': '1.5'}
                 )
             ])
         ]
