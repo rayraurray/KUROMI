@@ -116,50 +116,6 @@ def get_overview_callbacks(df, app):
         return fig
 
     # ==============================
-    # TOP 10 COUNTRIES (Dark Themed)
-    # ==============================
-    @app.callback(
-        Output('race-chart', 'figure'),
-        [Input('category-dropdown', 'value'),
-         Input('year-slider', 'value'),
-         Input('country-dropdown', 'value')]
-    )
-    def update_top_countries(categories, years, countries):
-        filtered = apply_filters(df, selected_categories=categories, year_range=years, selected_countries=countries)
-        filtered = normalize_by_agricultural_land(filtered, df, "obs_value")
-
-        country_totals = (
-            filtered.groupby('country', as_index=False)['obs_value_log_normalized']
-            .sum()
-            .rename(columns={"obs_value_log_normalized": "normalized"})
-            .sort_values(by='normalized', ascending=False)
-            .head(10)
-        )
-
-        fig = px.bar(
-            country_totals,
-            x='normalized',
-            y='country',
-            orientation='h',
-            text='normalized',
-            color_discrete_sequence=['#3b52db'],
-            title=style_title(f"Top 10 Countries (Normalized) ({years[0]}–{years[1]})")
-        )
-
-        fig.update_traces(texttemplate='%{text:.2f}')
-        fig.update_layout(
-            title=CHART_TITLE_CONFIG,
-            paper_bgcolor=VIZ_COLOR,
-            plot_bgcolor=VIZ_COLOR,
-            font=dict(color=TEXT_COLOR, family=FONT_FAMILY),
-            xaxis=dict(title="Normalized Balance", gridcolor='rgba(255,255,255,0.1)'),
-            yaxis=dict(title="Country", gridcolor='rgba(255,255,255,0.1)', categoryorder='total ascending'),
-            margin=dict(l=20, r=20, t=60, b=40),
-            showlegend=False
-        )
-        return fig
-
-    # ==============================
     # HEATMAP (Dark Themed)
     # ==============================
     @app.callback(

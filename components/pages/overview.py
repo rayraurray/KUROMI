@@ -79,27 +79,6 @@ overview = [
                     }
                 )
             ]),
-
-            # ===========================
-            # TOP COUNTRIES BAR CHART
-            # ===========================
-            html.Div(
-                children=html.P([
-                    html.Strong("Top 10 Countries (Cumulative) Analysis: "), html.Br(),
-                    "This bar chart displays the cumulative normalized nutrient balance across the selected years. "
-                    "It highlights which countries have the largest total nutrient impact over time. "
-                    "China and the US lead significantly, indicating their overall dominance in nutrient accumulation, "
-                    "while other countries like the EU, India, and Brazil follow with substantial but lower totals."
-                ]),
-                style={
-                    'padding': '15px',
-                    'color': TEXT_COLOR,
-                    'background-color': 'rgba(255,255,255,0.05)',
-                    'border-radius': '8px',
-                    'margin-top': '10px',
-                    'line-height': '1.5'
-                }
-            ),
             
             # ===========================
             # HEATMAP VISUALIZATION
